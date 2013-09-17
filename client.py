@@ -1,7 +1,6 @@
 #!/usr/env/bin python
 
 import RPi.GPIO as io
-import requests
 import sys
 
 class Switch(object):
@@ -15,15 +14,15 @@ class Switch(object):
 
 
 PINS = (8, 16, 18)
+server_url = sys.argv[1]
 switches = set()
 
 def has_free():
     global switches
     return not all([s.is_on for s in switches])
 
-def call_api(is_on):
-    r = requests.post("SERVER_ADDRESS",
-                     params={"is_free": "yes" if is_on else "no"})
+def call_api(url, is_on):
+    r = requests.post(url, params={"is_free": "yes" if is_on else "no"})
 
 if __name__ == "__main__":
     io.setmode(io.BOARD)
@@ -34,7 +33,7 @@ if __name__ == "__main__":
         while True:
             state = has_free()
             if state is not previous_state:
-                call_api(state)
+                call_api(server_url, state)
             previous_state = state
     except KeyboardInterrupt:
         pass
