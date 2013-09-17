@@ -5,6 +5,10 @@ import tornado.web
 import sse
 import os
 
+from tornado.options import define, options
+
+define('port', default=8888, help="run on the given port", type=int)
+
 is_free = "yes"
 
 class SSEHandler(sse.SSEHandler):
@@ -29,5 +33,6 @@ app = tornado.web.Application(
 )
 
 if __name__ == "__main__":
-    app.listen(8888)
+    tornado.options.parse_command_line()
+    app.listen(options.port)
     tornado.ioloop.IOLoop.instance().start()
