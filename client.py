@@ -1,6 +1,7 @@
 #!/usr/env/bin python
 
 import RPi.GPIO as io
+import requests
 import sys
 
 class Switch(object):
