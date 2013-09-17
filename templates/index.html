@@ -1,0 +1,24 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Is the toilet free?</title>
+<style>
+h1 {
+font: 12em Georgia, serif;
+text-align: center;
+}
+</style>
+</head>
+<body>
+<h1 id="state">{{ is_free }}</h1>
+<script>
+var state = document.getElementById("state");
+var source = new EventSource("/sse");
+
+source.onmessage = function(e) {
+    state.innerHTML = e.data;
+};
+</script>
+</body>
+</html>
