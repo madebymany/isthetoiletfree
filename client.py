@@ -1,40 +1,42 @@
 #!/usr/env/bin python
 
-import RPi.GPIO as io
 import requests
+import hmac
+import hashlib
 import sys
 
-class Switch(object):
-    def __init__(self, **kwargs):
-        self.pin = kwargs["pin"]
-        io.setup(self.pin, io.IN)
-
-    @property
-    def is_on(self):
-      return io.input(self.pin)
-
-
-PINS = (8, 16, 18)
-server_url = sys.argv[1]
-switches = set()
-
-def has_free():
-    global switches
-    return not all([s.is_on for s in switches])
-
-def call_api(url, is_on):
-    r = requests.post(url, params={"is_free": "yes" if is_on else "no"})
+def call_api(state, **kwargs):
+    has_free_toilet = "yes" if state else "no"
+    requests.post(kwargs["url"], params={
+        "data": has_free_toilet,
+        "token": hmac.new(
+            kwargs["hmac_key"],
+            has_free_toilet,
+            hashlib.sha256
+        ).hexdigest()
+    })
 
 if __name__ == "__main__":
+    import RPi.GPIO as io
+    base_path = os.path.dirname(__file__)
+
+    API_URL = sys.argv[1]
+    HMAC_KEY = open(os.path.join(base_path, ".hmac_key")).read().strip()
+    PINS = (8, 16, 18)
+
     io.setmode(io.BOARD)
-    for pin in PINS:
-        switches.add(Switch(pin=pin))
+    for p in PINS:
+        io.setup(p, io.IN)
+
+    def has_open_switch(pins):
+        return not all(io.input(p) for p in pins)
+
     try:
-        previous_state = has_free()
+        prev_state = has_open_switch(PINS)
         while True:
-            state = has_free()
-            if state is not previous_state:
-                call_api(server_url, state)
-            previous_state = state
+            state = has_open_switch(PINS)
+            if state != prev_state:
+                call_api(state, url=API_URL, hmac_key=HMAC_KEY)
+            prev_state = state
     except KeyboardInterrupt:
         pass
