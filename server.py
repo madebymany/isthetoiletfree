@@ -29,9 +29,9 @@ class MainHandler(tornado.web.RequestHandler):
 
     @hmac_authenticated
     def post(self):
-        free_toilet = self.application.has_free_toilet =\
-                      self.get_argument("data")
-        SSEHandler.write_message_to_all("message", free_toilet)
+        has_free_toilet = self.application.has_free_toilet =\
+                          self.get_argument("data")
+        SSEHandler.write_message_to_all("message", has_free_toilet)
 
 class SSEHandler(sse.SSEHandler):
     pass
@@ -44,7 +44,7 @@ if __name__ == "__main__":
             (r"/sse", SSEHandler),
         ],
         template_path=os.path.join(base_path, "templates"),
-        hmac_key=open(os.path.join(base_path, ".hmac")).read().strip()
+        hmac_key=open(os.path.join(base_path, ".hmac_key")).read().strip()
     )
     app.has_free_toilet = "yes"
     tornado.options.parse_command_line()

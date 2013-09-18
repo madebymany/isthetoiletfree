@@ -17,7 +17,7 @@ if __name__ == "__main__":
     base_path = os.path.dirname(__file__)
 
     API_URL = sys.argv[1]
-    HMAC_KEY = open(os.path.join(base_path, ".hmac")).read().strip()
+    HMAC_KEY = open(os.path.join(base_path, ".hmac_key")).read().strip()
     PINS = (8, 16, 18)
 
     io.setmode(io.BOARD)
