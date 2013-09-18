@@ -4,6 +4,7 @@ import requests
 import hmac
 import hashlib
 import sys
+import os
 
 def call_api(state, **kwargs):
     has_free_toilet = "yes" if state else "no"
