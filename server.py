@@ -15,10 +15,13 @@ define("port", default=8888, help="run on the given port", type=int)
 def hmac_authenticated(method):
     @functools.wraps(method)
     def wrapper(self, *args, **kwargs):
-        hash = hmac.new(self.settings["hmac_key"],
-                        self.get_argument("data"))
+        hash = hmac.new(
+            self.settings["hmac_key"],
+            self.get_argument("data"),
+            hashlib.sha256
+        )
         if self.get_argument("token") != hash.hexdigest():
-            raise tornado.web.HTTPError(403, "Authentication required")
+            raise tornado.web.HTTPError(401, "Invalid token")
         return method(self, *args, **kwargs)
     return wrapper
 

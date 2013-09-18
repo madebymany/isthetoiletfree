@@ -9,7 +9,11 @@ def call_api(state, **kwargs):
     has_free_toilet = "yes" if state else "no"
     requests.post(kwargs["url"], params={
         "data": has_free_toilet,
-        "token": hmac.new(kwargs["hmac_key"], has_free_toilet).hexdigest()
+        "token": hmac.new(
+            kwargs["hmac_key"],
+            has_free_toilet,
+            hashlib.sha256
+        ).hexdigest()
     })
 
 if __name__ == "__main__":
