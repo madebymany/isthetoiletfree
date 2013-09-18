@@ -3,7 +3,6 @@
 import requests
 import hmac
 import hashlib
-import sys
 import os
 
 def call_api(state, **kwargs):
@@ -21,7 +20,7 @@ if __name__ == "__main__":
     import RPi.GPIO as io
     base_path = os.path.dirname(__file__)
 
-    API_URL = sys.argv[1]
+    API_URL = os.environ("ITTF_API_URL")
     HMAC_KEY = open(os.path.join(base_path, ".hmac_key")).read().strip()
     PINS = (8, 16, 18)
 
