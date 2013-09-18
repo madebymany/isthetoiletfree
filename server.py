@@ -12,6 +12,14 @@ from tornado.options import define, options
 
 define("port", default=8888, help="run on the given port", type=int)
 
+def get_secret_key():
+    try:
+        with open(os.path.join(os.path.dirname(__file__), ".hmac_key")) as f:
+            return f.read().strip()
+    except IOError:
+        return os.getenv("ITTF_HMAC_KEY")
+
+
 def hmac_authenticated(method):
     @functools.wraps(method)
     def wrapper(self, *args, **kwargs):
@@ -40,14 +48,13 @@ class SSEHandler(sse.SSEHandler):
     pass
 
 if __name__ == "__main__":
-    base_path = os.path.dirname(__file__)
     app = tornado.web.Application(
         [
             (r"/", MainHandler),
             (r"/sse", SSEHandler),
         ],
-        template_path=os.path.join(base_path, "templates"),
-        hmac_key=open(os.path.join(base_path, ".hmac_key")).read().strip()
+        template_path=os.path.join(os.path.dirname(__file__), "templates"),
+        hmac_key=get_secret_key()
     )
     app.has_free_toilet = "yes"
     tornado.options.parse_command_line()
