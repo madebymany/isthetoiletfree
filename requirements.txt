@@ -1,2 +1,4 @@
+Momoko==1.0.0
+psycopg2==2.5.2
 tornado==3.1.1
 wsgiref==0.1.2

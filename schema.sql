@@ -1,0 +1,6 @@
+CREATE TABLE events (
+    id SERIAL PRIMARY KEY,
+    toilet_id INTEGER NOT NULL,
+    is_free TEXT NOT NULL DEFAULT 'yes',
+    recorded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
