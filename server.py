@@ -69,11 +69,11 @@ class MainHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     @tornado.gen.coroutine
     def post(self):
-        has_free_toilet = self.get_argument("has_free_toilet", None)
+        data = tornado.escape.json_decode(self.get_argument("data"))
+        has_free_toilet = data.get("has_free_toilet", None)
         if has_free_toilet:
             self.app.has_free_toilet = has_free_toilet
             SSEHandler.write_message_to_all("message", has_free_toilet)
-        data = tornado.escape.json_decode(self.get_argument("data"))
         for i in xrange(self.app.num_toilets):
             value = data.get("toilet_%s" % i, None)
             if value:
