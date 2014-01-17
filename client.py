@@ -26,6 +26,7 @@ if __name__ == "__main__":
     SWITCH_PINS = (22, 24, 26)
     RED_PIN = 8
     GREEN_PIN = 10
+    BLUE_PIN = 12
 
     io.setmode(io.BOARD)
     for p in SWITCH_PINS:
@@ -33,6 +34,8 @@ if __name__ == "__main__":
 
     io.setup(RED_PIN, io.OUT)
     io.setup(GREEN_PIN, io.OUT)
+    io.setup(BLUE_PIN, io.OUT)
+    io.output(BLUE_PIN, False)
 
     def has_open_switch(pins):
         return not all(io.input(p) for p in pins)
