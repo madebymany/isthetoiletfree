@@ -16,8 +16,8 @@ from tornado.options import define, options
 define("port", default=8888, help="run on the given port", type=int)
 define("db_host", default="localhost", help="database hostname", type=str)
 define("db_port", default=5432, help="database port", type=int)
-define("db_name", default="madebymany", help="database name", type=str)
-define("db_user", default="madebymany", help="database username", type=str)
+define("db_name", default="callum", help="database name", type=str)
+define("db_user", default="callum", help="database username", type=str)
 define("db_pass", default="", help="database password", type=str)
 
 def get_psql_credentials():

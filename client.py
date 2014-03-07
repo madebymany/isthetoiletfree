@@ -5,6 +5,7 @@ import hmac
 import hashlib
 import json
 import os
+import sys
 
 def call_api(url_params, **kwargs):
     data = json.dumps(url_params)
@@ -63,6 +64,7 @@ if __name__ == "__main__":
                         "toilet_%s" % i: bool2str(not state)})
                 prev_states[i] = state
             if len(url_params):
-                call_api(url_params, url=API_URL, hmac_key=HMAC_KEY)
+                if "debug" not in sys.argv:
+                    call_api(url_params, url=API_URL, hmac_key=HMAC_KEY)
     except KeyboardInterrupt:
         pass
