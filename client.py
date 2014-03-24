@@ -7,6 +7,7 @@ import json
 import os
 import sys
 import datetime
+import time
 
 def call_api(url_params, **kwargs):
     data = json.dumps(url_params)
@@ -54,10 +55,10 @@ if __name__ == "__main__":
                     })
                 prev_states[i] = state
             if len(url_params):
-                if "debug" not in sys.argv:
-                    call_api(url_params, url=API_URL, hmac_key=HMAC_KEY)
+                call_api(url_params, url=API_URL, hmac_key=HMAC_KEY)
             has_free = not all(prev_states)
             io.output(RED_PIN, not has_free)
             io.output(GREEN_PIN, has_free)
+            time.sleep(1)
     except KeyboardInterrupt:
         pass

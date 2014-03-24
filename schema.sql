@@ -6,6 +6,6 @@ CREATE TABLE events (
 );
 
 INSERT INTO events (toilet_id, is_free) VALUES
+    (0, 'yes'),
     (1, 'yes'),
-    (2, 'yes'),
-    (3, 'yes');
+    (2, 'yes');
