@@ -11,13 +11,7 @@ text-align: center;
 </style>
 </head>
 <body>
-<h1 id="state">{{ has_free_toilet }}</h1>
-<script>
-var state = document.getElementById("state");
-var source = new EventSource("/sse");
-source.onmessage = function(e) {
-    state.innerHTML = e.data;
-};
+<h1>{{ has_free_toilet }}</h1>
 </script>
 </body>
 </html>

@@ -13,6 +13,7 @@ import urlparse
 
 from tornado.options import define, options
 
+define("num_toilets", default=3, help="number of toilets", type=int)
 define("port", default=8888, help="run on the given port", type=int)
 define("db_host", default="localhost", help="database hostname", type=str)
 define("db_port", default=5432, help="database port", type=int)
@@ -54,43 +55,39 @@ def hmac_authenticated(method):
 
 class MainHandler(tornado.web.RequestHandler):
     @property
-    def app(self):
-        return self.application
-
-    @property
     def db(self):
-        return self.app.db
+        return self.application.db
 
+    @tornado.web.asynchronous
+    @tornado.gen.coroutine
     def get(self):
+        cursor = yield momoko.Op(self.db.execute,
+                                 "WITH latest_events AS ("
+                                 "SELECT DISTINCT ON (toilet_id) * FROM events "
+                                 "ORDER BY toilet_id, recorded_at DESC) "
+                                 "SELECT EXISTS "
+                                 "(SELECT 1 FROM latest_events WHERE is_free);")
         self.render("index.html",
-                    has_free_toilet=self.app.has_free_toilet)
+                    has_free_toilet="yes" if cursor.fetchone()[0] else "no")
 
     @hmac_authenticated
     @tornado.web.asynchronous
     @tornado.gen.coroutine
     def post(self):
         data = tornado.escape.json_decode(self.get_argument("data"))
-        has_free_toilet = data.get("has_free_toilet", None)
-        if has_free_toilet:
-            self.app.has_free_toilet = has_free_toilet
-            SSEHandler.write_message_to_all("message", has_free_toilet)
-        for i in xrange(self.app.num_toilets):
-            value = data.get("toilet_%s" % i, None)
-            if value:
+        for i in xrange(self.settings["num_toilets"]):
+            toilet = data.get("toilet_%s" % i, None)
+            if toilet:
                 yield momoko.Op(self.db.execute,
-                                "INSERT INTO events (toilet_id, is_free) "
-                                "VALUES (%s, %s);", (i, value))
+                                "INSERT INTO events "
+                                "(toilet_id, is_free, recorded_at) "
+                                "VALUES (%s, %s);",
+                                (i, toilet["state"], toilet["timestamp"]))
         self.finish()
-
-class SSEHandler(sse.SSEHandler):
-    pass
 
 if __name__ == "__main__":
     app = tornado.web.Application(
-        [
-            (r"/", MainHandler),
-            (r"/sse", SSEHandler),
-        ],
+        [(r"/", MainHandler)],
         template_path=os.path.join(os.path.dirname(__file__), "templates"),
         hmac_key=get_secret_key()
     )
@@ -99,8 +96,6 @@ if __name__ == "__main__":
             get_psql_credentials(),
         size=1
     )
-    app.num_toilets = 3
-    app.has_free_toilet = "yes"
     tornado.options.parse_command_line()
     app.listen(options.port)
     tornado.ioloop.IOLoop.instance().start()

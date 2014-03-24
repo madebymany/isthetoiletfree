@@ -6,6 +6,7 @@ import hashlib
 import json
 import os
 import sys
+import datetime
 
 def call_api(url_params, **kwargs):
     data = json.dumps(url_params)
@@ -38,33 +39,25 @@ if __name__ == "__main__":
     io.setup(BLUE_PIN, io.OUT)
     io.output(BLUE_PIN, False)
 
-    def has_open_switch(pins):
-        return not all(io.input(p) for p in pins)
-
-    def bool2str(b):
-        return "yes" if b else "no"
-
     try:
-        prev_has_free = has_open_switch(SWITCH_PINS)
         prev_states = [io.input(p) for p in SWITCH_PINS]
         while True:
             url_params = {}
-            has_free = has_open_switch(SWITCH_PINS)
-            io.output(RED_PIN, not has_free)
-            io.output(GREEN_PIN, has_free)
-            if has_free != prev_has_free:
-                url_params.update({
-                    "has_free_toilet": bool2str(has_free)
-                })
-            prev_has_free = has_free
             for i, p in enumerate(SWITCH_PINS):
                 state = io.input(p)
                 if state != prev_states[i]:
                     url_params.update({
-                        "toilet_%s" % i: bool2str(not state)})
+                        "toilet_%s" % i: {
+                            "state": "yes" if not state else "no",
+                            "timestamp": datetime.datetime.now().isoformat()
+                        }
+                    })
                 prev_states[i] = state
             if len(url_params):
                 if "debug" not in sys.argv:
                     call_api(url_params, url=API_URL, hmac_key=HMAC_KEY)
+            has_free = not all(prev_states)
+            io.output(RED_PIN, not has_free)
+            io.output(GREEN_PIN, has_free)
     except KeyboardInterrupt:
         pass
