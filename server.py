@@ -81,7 +81,7 @@ class MainHandler(tornado.web.RequestHandler):
                 yield momoko.Op(self.db.execute,
                                 "INSERT INTO events "
                                 "(toilet_id, is_free, recorded_at) "
-                                "VALUES (%s, %s);",
+                                "VALUES (%s, %s, %s);",
                                 (i, toilet["state"], toilet["timestamp"]))
         self.finish()
 
@@ -89,7 +89,8 @@ if __name__ == "__main__":
     app = tornado.web.Application(
         [(r"/", MainHandler)],
         template_path=os.path.join(os.path.dirname(__file__), "templates"),
-        hmac_key=get_secret_key()
+        hmac_key=get_secret_key(),
+        num_toilets=options.num_toilets
     )
     app.db = momoko.Pool(
         dsn="host=%s port=%s dbname=%s user=%s password=%s" % \
