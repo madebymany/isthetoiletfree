@@ -7,7 +7,6 @@ import hmac
 import hashlib
 import functools
 import os
-import sse
 import momoko
 import urlparse
 
