@@ -57,7 +57,7 @@ try:
         url_params = []
         for t in toilets:
             if t.has_changed_state():
-                url_params.append({:q
+                url_params.append({
                     "toilet_id": t.tid,
                     "is_free": "yes" if t.is_free else "no",
                     "timestamp": datetime.datetime.now().isoformat()
