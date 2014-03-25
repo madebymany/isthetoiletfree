@@ -18,8 +18,3 @@ BEGIN
     RETURN has_free;
 END;
 $$ LANGUAGE plpgsql;
-
-INSERT INTO events (toilet_id, is_free) VALUES
-    (0, 'yes'),
-    (1, 'yes'),
-    (2, 'yes');

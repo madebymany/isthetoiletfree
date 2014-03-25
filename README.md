@@ -10,7 +10,7 @@ Import the database schema on Heroku:
 
 ```
 heroku pg:psql < schema.sql
-``
+```
 
 To start the client (for now):
 
