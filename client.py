@@ -13,7 +13,6 @@ from RPi import GPIO
 GPIO.setmode(GPIO.BOARD)
 
 INTERVAL = 3
-GA_ACCOUNT = "UA-153994-48"
 HMAC_KEY = open(os.path.join(os.path.dirname(__file__),
                              ".hmac_key")).read().strip()
 
@@ -44,14 +43,6 @@ def call_server(url_params):
         "token": hmac.new(HMAC_KEY, data, hashlib.sha256).hexdigest()
     })
 
-def call_ga(toilet):
-    requests.post("http://www.google-analytics.com/collect", params={
-        "v": 1, "tid": GA_ACCOUNT, "cid": 1, "t": "event",
-        "ec": "Toilet",
-        "ea": "Toilet %s" % ("vacated" if toilet.is_free else "occupied"),
-        "el": "Toilet %s" % toilet.tid
-    })
-
 
 leds = {"r": 8, "g": 10, "b": 12}
 toilets = [Toilet(tid=i, pin=p) for i, p in enumerate([22, 24, 26])]
@@ -71,7 +62,6 @@ try:
                     "is_free": "yes" if t.is_free else "no",
                     "timestamp": datetime.datetime.now().isoformat()
                 })
-                call_ga(t)
         if len(url_params):
             call_server(url_params)
         has_free = any(t.is_free for t in toilets)
