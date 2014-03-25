@@ -59,17 +59,16 @@ class MainHandler(tornado.web.RequestHandler):
     def db(self):
         return self.application.db
 
+    @tornado.gen.coroutine
+    def has_free_toilet(self):
+        cursor = yield momoko.Op(self.db.callproc, "has_free_toilet")
+        raise tornado.gen.Return(cursor.fetchone()[0])
+
     @tornado.web.asynchronous
     @tornado.gen.coroutine
     def get(self):
-        cursor = yield momoko.Op(self.db.execute,
-                                 "WITH latest_events AS ("
-                                 "SELECT DISTINCT ON (toilet_id) * FROM events "
-                                 "ORDER BY toilet_id, recorded_at DESC) "
-                                 "SELECT EXISTS "
-                                 "(SELECT 1 FROM latest_events WHERE is_free);")
-        self.render("index.html",
-                    has_free_toilet="yes" if cursor.fetchone()[0] else "no")
+        has_free = "yes" if yield self.has_free_toilet() else "no"
+        self.render("index.html", has_free_toilet=has_free)
 
     @hmac_authenticated
     @tornado.web.asynchronous
