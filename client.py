@@ -15,24 +15,25 @@ GPIO.setmode(GPIO.BOARD)
 HMAC_KEY = open(os.path.join(os.path.dirname(__file__),
                              ".hmac_key")).read().strip()
 
-class Switch(object):
+class Toilet(object):
     def __init__(self, pin):
         GPIO.setup(pin, GPIO.IN)
         self.pin = pin
-        self.prev_state = self._state
+        self.latest_is_free = self._is_free
 
     @property
-    def _state(self):
+    def _is_free(self):
         return not GPIO.input(self.pin)
 
     @throttle(3, persist_return_value=True)
-    def is_open(self):
-        return self._state
+    @property
+    def is_free(self):
+        return self._is_free
 
     def has_changed_state(self):
-        current_state = self.is_open()
-        has_changed = current_state != self.prev_state
-        self.prev_state = current_state
+        is_free = self.is_free
+        has_changed = is_free != self.latest_is_free
+        self.latest_is_free = is_free
         return has_changed
 
 def call_api(url_params):
@@ -47,28 +48,27 @@ def call_api(url_params):
     })
 
 leds = {"r": 8, "g": 10, "b": 12}
-switches = [Switch(p) for p in (22, 24, 26)]
+toilets = [Toilet(p) for p in (22, 24, 26)]
 
 for c, p in leds.iteritems():
     GPIO.setup(p, GPIO.OUT)
 
 GPIO.output(leds["b"], False)
 
-if __name__ == "__main__":
-    try:
-        while True:
-            url_params = []
-            for i, s in enumerate(switches):
-                if s.has_changed_state():
-                    url_params.append({
-                        "toilet_id": i,
-                        "is_free": "yes" if s.prev_state else "no",
-                        "timestamp": datetime.datetime.now().isoformat()
-                    })
-            if len(url_params):
-                call_api(url_params)
-            is_free = any(s.prev_state for s in switches)
-            GPIO.output(RED_PIN, not is_free)
-            GPIO.output(GREEN_PIN, is_free)
-    except KeyboardInterrupt:
-        pass
+try:
+    while True:
+        url_params = []
+        for i, t in enumerate(toilets):
+            if t.has_changed_state():
+                url_params.append({
+                    "toilet_id": i,
+                    "is_free": "yes" if t.latest_is_free else "no",
+                    "timestamp": datetime.datetime.now().isoformat()
+                })
+        if len(url_params):
+            call_api(url_params)
+        has_free = any(t.latest_is_free for t in toilets)
+        GPIO.output(leds["r"], not has_free)
+        GPIO.output(leds["g"], has_free)
+except KeyboardInterrupt:
+    pass

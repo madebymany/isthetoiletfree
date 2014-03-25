@@ -23,11 +23,14 @@ def get_psql_credentials():
     try:
         urlparse.uses_netloc.append("postgres")
         url = urlparse.urlparse(os.getenv("DATABASE_URL"))
-        return (url.hostname, url.port, url.path[1:], url.username,
-                url.password)
+        credentials = { "host": url.hostname, "port": url.port,
+                        "dbname": url.path[1:], "user": url.username,
+                        "password": url.password }
     except:
-        return (options.db_host, options.db_port, options.db_name,
-                options.db_user, options.db_pass)
+        credentials = { "host": options.db_host, "port": options.db_port,
+                        "dbname": options.db_name, "user": options.db_user,
+                        "password": options.db_pass }
+    return credentials
 
 
 def get_secret_key():
@@ -87,8 +90,7 @@ if __name__ == "__main__":
         hmac_key=get_secret_key()
     )
     app.db = momoko.Pool(
-        dsn="host=%s port=%s dbname=%s user=%s password=%s" % \
-            get_psql_credentials(),
+        dsn=" ".join(["%s=%s" % c for c in get_psql_credentials().iteritems()]),
         size=1
     )
     tornado.options.parse_command_line()
