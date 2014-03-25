@@ -2,6 +2,7 @@
 
 import tornado.ioloop
 import tornado.web
+import tornado.gen
 import tornado.escape
 import hmac
 import hashlib
@@ -54,7 +55,8 @@ def hmac_authenticated(method):
         return method(self, *args, **kwargs)
     return wrapper
 
-class MainHandler(tornado.web.RequestHandler):
+
+class BaseHandler(tornado.web.RequestHandler):
     @property
     def db(self):
         return self.application.db
@@ -64,10 +66,12 @@ class MainHandler(tornado.web.RequestHandler):
         cursor = yield momoko.Op(self.db.callproc, "has_free_toilet")
         raise tornado.gen.Return(cursor.fetchone()[0])
 
+
+class MainHandler(BaseHandler):
     @tornado.web.asynchronous
     @tornado.gen.coroutine
     def get(self):
-        has_free = "yes" if yield self.has_free_toilet() else "no"
+        has_free = "yes" if (yield self.has_free_toilet()) else "no"
         self.render("index.html", has_free_toilet=has_free)
 
     @hmac_authenticated
@@ -82,9 +86,24 @@ class MainHandler(tornado.web.RequestHandler):
                             (t["toilet_id"], t["is_free"], t["timestamp"]))
         self.finish()
 
+
+class APIHandler(BaseHandler):
+    @tornado.web.asynchronous
+    @tornado.gen.coroutine
+    def get(self):
+        response = tornado.escape.json_encode({
+            "has_free_toilet": (yield self.has_free_toilet())
+        })
+        callback = self.get_argument("callback", None)
+        if callback:
+            response = "%s(%s)" % (callback, response)
+        self.write(response)
+
+
 if __name__ == "__main__":
     app = tornado.web.Application(
-        [(r"/", MainHandler)],
+        [(r"/", MainHandler),
+         (r"/api", APIHandler)],
         template_path=os.path.join(os.path.dirname(__file__), "templates"),
         hmac_key=get_secret_key()
     )
