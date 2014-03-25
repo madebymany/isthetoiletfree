@@ -62,7 +62,7 @@ if __name__ == "__main__":
                 if s.has_changed_state():
                     url_params.append({
                         "toilet_id": i,
-                        "is_free": "yes" if not state else "no",
+                        "is_free": "yes" if s.prev_state else "no",
                         "timestamp": datetime.datetime.now().isoformat()
                     })
             if len(url_params):
