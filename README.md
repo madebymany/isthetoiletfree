@@ -15,5 +15,5 @@ heroku pg:psql < schema.sql
 To start the client (for now):
 
 ```
-sudo screen -S isthetoiletfree -d -m $HOME/run.sh
+sudo screen -S isthetoiletfree -d -m $HOME/isthetoiletfree/start
 ```
