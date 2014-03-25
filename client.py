@@ -6,12 +6,13 @@ import hashlib
 import json
 import os
 import datetime
+import time
 
-from throttle import throttle
 from RPi import GPIO
 
 GPIO.setmode(GPIO.BOARD)
 
+SLEEP = 3
 HMAC_KEY = open(os.path.join(os.path.dirname(__file__),
                              ".hmac_key")).read().strip()
 
@@ -19,16 +20,11 @@ class Toilet(object):
     def __init__(self, pin):
         GPIO.setup(pin, GPIO.IN)
         self.pin = pin
-        self.latest_is_free = self._is_free
+        self.latest_is_free = self.is_free
 
-    @property
-    def _is_free(self):
-        return not GPIO.input(self.pin)
-
-    @throttle(3, persist_return_value=True)
     @property
     def is_free(self):
-        return self._is_free
+        return not GPIO.input(self.pin)
 
     def has_changed_state(self):
         is_free = self.is_free
@@ -62,13 +58,14 @@ try:
             if t.has_changed_state():
                 url_params.append({
                     "toilet_id": i,
-                    "is_free": "yes" if t.latest_is_free else "no",
+                    "is_free": "yes" if t.is_free else "no",
                     "timestamp": datetime.datetime.now().isoformat()
                 })
         if len(url_params):
             call_api(url_params)
-        has_free = any(t.latest_is_free for t in toilets)
+        has_free = any(t.is_free for t in toilets)
         GPIO.output(leds["r"], not has_free)
         GPIO.output(leds["g"], has_free)
+        time.sleep(SLEEP)
 except KeyboardInterrupt:
     pass
