@@ -48,7 +48,7 @@ def call_ga(toilet):
     requests.post("http://www.google-analytics.com/collect", params={
         "v": 1, "tid": GA_ACCOUNT, "cid": 1, "t": "event",
         "ec": "Toilet",
-        "ea": "Toilet %s" % "vacated" if toilet.is_free else "occupied"
+        "ea": "Toilet %s" % ("vacated" if toilet.is_free else "occupied"),
         "el": "Toilet %s" % toilet.tid
     })
 
