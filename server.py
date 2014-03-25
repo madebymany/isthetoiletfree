@@ -12,7 +12,6 @@ import urlparse
 
 from tornado.options import define, options
 
-define("num_toilets", default=3, help="number of toilets", type=int)
 define("port", default=8888, help="run on the given port", type=int)
 define("db_host", default="localhost", help="database hostname", type=str)
 define("db_port", default=5432, help="database port", type=int)
@@ -73,23 +72,19 @@ class MainHandler(tornado.web.RequestHandler):
     @tornado.web.asynchronous
     @tornado.gen.coroutine
     def post(self):
-        data = tornado.escape.json_decode(self.get_argument("data"))
-        for i in xrange(self.settings["num_toilets"]):
-            toilet = data.get("toilet_%s" % i, None)
-            if toilet:
-                yield momoko.Op(self.db.execute,
-                                "INSERT INTO events "
-                                "(toilet_id, is_free, recorded_at) "
-                                "VALUES (%s, %s, %s);",
-                                (i, toilet["state"], toilet["timestamp"]))
+        for t in tornado.escape.json_decode(self.get_argument("data")):
+            yield momoko.Op(self.db.execute,
+                            "INSERT INTO events "
+                            "(toilet_id, is_free, recorded_at) "
+                            "VALUES (%s, %s, %s);",
+                            (t["toilet_id"], t["is_free"], t["timestamp"]))
         self.finish()
 
 if __name__ == "__main__":
     app = tornado.web.Application(
         [(r"/", MainHandler)],
         template_path=os.path.join(os.path.dirname(__file__), "templates"),
-        hmac_key=get_secret_key(),
-        num_toilets=options.num_toilets
+        hmac_key=get_secret_key()
     )
     app.db = momoko.Pool(
         dsn="host=%s port=%s dbname=%s user=%s password=%s" % \

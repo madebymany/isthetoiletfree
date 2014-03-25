@@ -5,60 +5,71 @@ import hmac
 import hashlib
 import json
 import os
-import sys
 import datetime
-import time
 
-def call_api(url_params, **kwargs):
+from throttle import throttle
+from RPi import GPIO
+
+GPIO.setmode(GPIO.BOARD)
+
+HMAC_KEY = open(os.path.join(os.path.dirname(__file__),
+                             ".hmac_key")).read().strip()
+
+leds = {"r": 8, "g": 10, "b": 12}
+switches = [Switch(p) for p in (22, 24, 26)]
+
+for c, p in leds.iteritems():
+    GPIO.setup(p, GPIO.OUT)
+
+GPIO.output(leds["b"], False)
+
+class Switch(object):
+    def __init__(self, pin):
+        GPIO.setup(pin, GPIO.IN)
+        self.pin = pin
+        self.prev_state = self._state
+
+    @property
+    def _state(self):
+        return not GPIO.input(self.pin)
+
+    @throttle(3, persist_return_value=True)
+    def is_open(self):
+        return self._state
+
+    def has_changed_state(self):
+        current_state = self.is_open()
+        has_changed = current_state != self.prev_state
+        self.prev_state = current_state
+        return has_changed
+
+def call_api(url_params):
     data = json.dumps(url_params)
-    requests.post(kwargs["url"], params={
+    requests.post(os.getenv("ITTF_API_URL"), params={
         "data": data,
         "token": hmac.new(
-            kwargs["hmac_key"],
+            HMAC_KEY,
             data,
             hashlib.sha256
         ).hexdigest()
     })
 
 if __name__ == "__main__":
-    import RPi.GPIO as io
-    base_path = os.path.dirname(__file__)
-
-    API_URL = os.getenv("ITTF_API_URL")
-    HMAC_KEY = open(os.path.join(base_path, ".hmac_key")).read().strip()
-    SWITCH_PINS = (22, 24, 26)
-    RED_PIN = 8
-    GREEN_PIN = 10
-    BLUE_PIN = 12
-
-    io.setmode(io.BOARD)
-    for p in SWITCH_PINS:
-        io.setup(p, io.IN)
-
-    io.setup(RED_PIN, io.OUT)
-    io.setup(GREEN_PIN, io.OUT)
-    io.setup(BLUE_PIN, io.OUT)
-    io.output(BLUE_PIN, False)
-
     try:
-        prev_states = [io.input(p) for p in SWITCH_PINS]
         while True:
-            url_params = {}
-            for i, p in enumerate(SWITCH_PINS):
-                state = io.input(p)
-                if state != prev_states[i]:
-                    url_params.update({
-                        "toilet_%s" % i: {
-                            "state": "yes" if not state else "no",
-                            "timestamp": datetime.datetime.now().isoformat()
-                        }
+            url_params = []
+            for i, s in enumerate(switches):
+                if s.has_changed_state():
+                    url_params.append({
+                        "toilet_id": i,
+                        "is_free": "yes" if not state else "no",
+                        "timestamp": datetime.datetime.now().isoformat()
                     })
-                prev_states[i] = state
             if len(url_params):
-                call_api(url_params, url=API_URL, hmac_key=HMAC_KEY)
-            has_free = not all(prev_states)
-            io.output(RED_PIN, not has_free)
-            io.output(GREEN_PIN, has_free)
-            time.sleep(1)
+                call_api(url_params)
+            has_free = any(s.prev_state for s in switches)
+            GPIO.output(RED_PIN, not has_free)
+            GPIO.output(GREEN_PIN, has_free)
+
     except KeyboardInterrupt:
         pass
