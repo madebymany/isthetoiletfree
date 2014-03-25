@@ -15,14 +15,6 @@ GPIO.setmode(GPIO.BOARD)
 HMAC_KEY = open(os.path.join(os.path.dirname(__file__),
                              ".hmac_key")).read().strip()
 
-leds = {"r": 8, "g": 10, "b": 12}
-switches = [Switch(p) for p in (22, 24, 26)]
-
-for c, p in leds.iteritems():
-    GPIO.setup(p, GPIO.OUT)
-
-GPIO.output(leds["b"], False)
-
 class Switch(object):
     def __init__(self, pin):
         GPIO.setup(pin, GPIO.IN)
@@ -54,6 +46,14 @@ def call_api(url_params):
         ).hexdigest()
     })
 
+leds = {"r": 8, "g": 10, "b": 12}
+switches = [Switch(p) for p in (22, 24, 26)]
+
+for c, p in leds.iteritems():
+    GPIO.setup(p, GPIO.OUT)
+
+GPIO.output(leds["b"], False)
+
 if __name__ == "__main__":
     try:
         while True:
@@ -67,9 +67,8 @@ if __name__ == "__main__":
                     })
             if len(url_params):
                 call_api(url_params)
-            has_free = any(s.prev_state for s in switches)
-            GPIO.output(RED_PIN, not has_free)
-            GPIO.output(GREEN_PIN, has_free)
-
+            is_free = any(s.prev_state for s in switches)
+            GPIO.output(RED_PIN, not is_free)
+            GPIO.output(GREEN_PIN, is_free)
     except KeyboardInterrupt:
         pass
