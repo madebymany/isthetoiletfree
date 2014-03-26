@@ -1,0 +1,22 @@
+[unix_http_server]
+file=/tmp/supervisor.sock
+chmod=0766
+
+[supervisord]
+logfile=/tmp/supervisord.log
+pidfile=/var/run/supervisord.pid
+
+[rpcinterface:supervisor]
+supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
+
+[supervisorctl]
+serverurl=unix:///tmp/supervisor.sock
+
+[program:ittf]
+command=/home/pi/isthetoiletfree/client.py
+environment=ITTF_SERVER_URL="http://isthetoiletfree.com/"
+
+[program:ittfdev]
+command=/home/pi/isthetoiletfree/client.py
+environment=ITTF_SERVER_URL="YOUR_LOCAL_DEVELOPMENT_URL"
+autostart=false
