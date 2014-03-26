@@ -3,7 +3,7 @@ isthetoiletfree
 
 ```
 git remote add heroku git@heroku.com:isthetoiletfree.git
-ssh isthetoiletfree.local
+ssh pi@isthetoiletfree.local
 ```
 
 Import the database schema on Heroku:
