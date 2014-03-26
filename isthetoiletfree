@@ -17,17 +17,19 @@ if [ "$2" == "dev" ]; then
 fi
 
 export ITTF_SERVER_URL=$server_url
+PIDFILE=/var/run/isthetoiletfree.pid
 
 cmd="python /home/pi/isthetoiletfree/client.py"
 
 case "$1" in
     start)
         echo "Starting isthetoiletfree"
-        `$cmd`
+        `$cmd` &
+        echo $! > $PIDFILE
         ;;
     stop)
         echo "Stopping isthetoiletfree"
-        killall $cmd
+        kill `cat $PIDFILE`
         ;;
     *)
         echo "Usage: isthetoiletfree start|stop"
