@@ -12,16 +12,18 @@ Import the database schema on Heroku:
 heroku pg:psql < schema.sql
 ```
 
-To manage the client:
-
-```
-sudo /etc/init.d/isthetoiletfree start|stop
-```
-
 If supervisor isn't running:
 
 ```
 sudo /etc/init.d/supervisor.sh start
+```
+
+Running in development:
+
+```
+supervisorctl
+stop ittf
+start ittfdev
 ```
 
 ## Useful links
