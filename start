@@ -1,9 +1,0 @@
-#!/bin/bash
-
-url="http://isthetoiletfree.com/"
-if [ "$1" == "dev" ]; then
-    url="http://192.168.228.237:8888/"
-fi
-
-echo $url
-sudo ITTF_SERVER_URL=$url python client.py

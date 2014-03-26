@@ -12,8 +12,8 @@ Import the database schema on Heroku:
 heroku pg:psql < schema.sql
 ```
 
-To start the client (for now):
+To manage the client:
 
 ```
-sudo screen -S isthetoiletfree -d -m $HOME/isthetoiletfree/start
+sudo /etc/init.d/isthetoiletfree start|stop
 ```

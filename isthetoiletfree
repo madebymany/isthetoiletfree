@@ -1,0 +1,38 @@
+#!/bin/bash
+# /etc/init.d/isthetoiletfree
+
+### BEGIN INIT INFO
+# Provides:          isthetoiletfree
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Description:       This service manages isthetoiletfree's client
+### END INIT INFO
+
+server_url="http://isthetoiletfree.com/"
+
+if [ "$2" == "dev" ]; then
+    server_url="http://192.168.228.237:8888/"
+fi
+
+export ITTF_SERVER_URL=$server_url
+
+cmd="python /home/pi/isthetoiletfree/client.py"
+
+case "$1" in
+    start)
+        echo "Starting isthetoiletfree"
+        `$cmd`
+        ;;
+    stop)
+        echo "Stopping isthetoiletfree"
+        killall $cmd
+        ;;
+    *)
+        echo "Usage: isthetoiletfree start|stop"
+        exit 1
+        ;;
+esac
+
+exit 0
