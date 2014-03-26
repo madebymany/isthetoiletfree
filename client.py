@@ -12,7 +12,7 @@ from RPi import GPIO
 
 GPIO.setmode(GPIO.BOARD)
 
-INTERVAL = 3
+INTERVAL = 2
 HMAC_KEY = open(os.path.join(os.path.dirname(__file__),
                              ".hmac_key")).read().strip()
 
@@ -38,7 +38,7 @@ class Toilet(object):
 
 def call_server(url_params):
     data = json.dumps(url_params)
-    requests.post(os.getenv("ITTF_API_URL"), params={
+    requests.post(os.getenv("ITTF_SERVER_URL"), params={
         "data": data,
         "token": hmac.new(HMAC_KEY, data, hashlib.sha256).hexdigest()
     })
@@ -49,8 +49,7 @@ toilets = [Toilet(tid=i, pin=p) for i, p in enumerate([22, 24, 26])]
 
 for c, p in leds.iteritems():
     GPIO.setup(p, GPIO.OUT)
-
-GPIO.output(leds["b"], False)
+    GPIO.output(p, False)
 
 try:
     while True:

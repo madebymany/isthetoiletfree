@@ -1,7 +1,7 @@
 #!/usr/env/bin python
 
 from RPi import GPIO
-import time
+from time import sleep
 
 GPIO.setmode(GPIO.BOARD)
 
@@ -11,17 +11,18 @@ for p in PINS:
     GPIO.setup(p, GPIO.OUT)
     GPIO.output(p, False)
 
+r, g, b = PINS
+
 try:
-    r, g, b = PINS
     while True:
         GPIO.output(b, False)
         GPIO.output(r, True)
-        time.sleep(1)
+        sleep(1)
         GPIO.output(r, False)
         GPIO.output(g, True)
-        time.sleep(1)
+        sleep(1)
         GPIO.output(g, False)
         GPIO.output(b, True)
-        time.sleep(1)
+        sleep(1)
 except KeyboardInterrupt:
     pass

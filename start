@@ -6,4 +6,4 @@ if [ "$1" == "dev" ]; then
 fi
 
 echo $url
-sudo ITTF_API_URL=$url python client.py
+sudo ITTF_SERVER_URL=$url python client.py
