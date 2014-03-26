@@ -13,10 +13,10 @@ supervisor.rpcinterface_factory = supervisor.rpcinterface:make_main_rpcinterface
 serverurl=unix:///tmp/supervisor.sock
 
 [program:ittf]
-command=/home/pi/isthetoiletfree/client.py
+command=python /home/pi/isthetoiletfree/client.py
 environment=ITTF_SERVER_URL="http://isthetoiletfree.com/"
 
 [program:ittfdev]
-command=/home/pi/isthetoiletfree/client.py
+command=python /home/pi/isthetoiletfree/client.py
 environment=ITTF_SERVER_URL="YOUR_LOCAL_DEVELOPMENT_URL"
 autostart=false

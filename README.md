@@ -12,12 +12,6 @@ Import the database schema on Heroku:
 heroku pg:psql < schema.sql
 ```
 
-If supervisor isn't running:
-
-```
-sudo /etc/init.d/supervisor.sh start
-```
-
 Running in development:
 
 ```
