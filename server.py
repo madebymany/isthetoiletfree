@@ -117,17 +117,23 @@ class MainHandler(BaseHandler):
                 logging.error("Error sending message", exc_info=True)
 
 
-
 class APIHandler(BaseHandler):
     @tornado.web.asynchronous
     @tornado.gen.coroutine
     def get(self):
+        force = self.get_argument("force", None)
+        if force:
+            result = False if force == "f" else True
+        else:
+            result = yield self.has_free_toilet()
+
         response = tornado.escape.json_encode({
-            "has_free_toilet": (yield self.has_free_toilet())
+            "has_free_toilet": result
         })
         callback = self.get_argument("callback", None)
         if callback:
             response = "%s(%s)" % (callback, response)
+        self.set_header("content-type", "application/json")
         self.write(response)
 
 
