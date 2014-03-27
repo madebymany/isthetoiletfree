@@ -3,6 +3,7 @@
 import tornado.ioloop
 import tornado.web
 import tornado.gen
+import tornado.websocket
 import tornado.escape
 import hmac
 import hashlib
@@ -10,6 +11,7 @@ import functools
 import os
 import momoko
 import urlparse
+import logging
 
 from tornado.options import define, options
 
@@ -56,6 +58,23 @@ def hmac_authenticated(method):
     return wrapper
 
 
+def bool2str(boolean):
+    return "yes" if boolean else "no"
+
+
+class HasFreeWebSocketHandler(tornado.websocket.WebSocketHandler):
+    connections = set()
+
+    def open(self):
+        HasFreeWebSocketHandler.connections.add(self)
+
+    def on_message(self, message):
+        pass
+
+    def on_close(self):
+        HasFreeWebSocketHandler.connections.remove(self)
+
+
 class BaseHandler(tornado.web.RequestHandler):
     @property
     def db(self):
@@ -71,7 +90,7 @@ class MainHandler(BaseHandler):
     @tornado.web.asynchronous
     @tornado.gen.coroutine
     def get(self):
-        has_free = "yes" if (yield self.has_free_toilet()) else "no"
+        has_free = bool2str((yield self.has_free_toilet()))
         self.render("index.html", has_free_toilet=has_free)
 
     @hmac_authenticated
@@ -84,7 +103,19 @@ class MainHandler(BaseHandler):
                             "(toilet_id, is_free, recorded_at) "
                             "VALUES (%s, %s, %s);",
                             (t["toilet_id"], t["is_free"], t["timestamp"]))
+        self.notify_has_free()
         self.finish()
+
+    @tornado.gen.coroutine
+    def notify_has_free(self):
+        for connected in HasFreeWebSocketHandler.connections:
+            try:
+                connected.write_message({
+                    "hasFree": bool2str((yield self.has_free_toilet()))
+                })
+            except:
+                logging.error("Error sending message", exc_info=True)
+
 
 
 class APIHandler(BaseHandler):
@@ -103,7 +134,8 @@ class APIHandler(BaseHandler):
 if __name__ == "__main__":
     app = tornado.web.Application(
         [(r"/", MainHandler),
-         (r"/api", APIHandler)],
+         (r"/api", APIHandler),
+         (r"/hasfreesocket", HasFreeWebSocketHandler)],
         template_path=os.path.join(os.path.dirname(__file__), "templates"),
         hmac_key=get_secret_key()
     )

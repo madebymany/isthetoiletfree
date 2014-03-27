@@ -11,7 +11,15 @@ text-align: center;
 </style>
 </head>
 <body>
-<h1>{{ has_free_toilet }}</h1>
+<h1 id="hasFree">{{ has_free_toilet }}</h1>
+<script>
+var el = document.getElementById("hasFree");
+var ws = new WebSocket(location.origin.replace(/^http/, "ws") +
+                       "/hasfreesocket");
+
+ws.onmessage = function(event) {
+  el.innerHTML = JSON.parse(event.data).hasFree;
+};
 </script>
 </body>
 </html>
