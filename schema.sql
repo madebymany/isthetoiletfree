@@ -18,3 +18,11 @@ BEGIN
     RETURN has_free;
 END;
 $$ LANGUAGE plpgsql;
+
+CREATE VIEW visits AS SELECT * FROM (
+  SELECT toilet_id, is_free, recorded_at, lead(recorded_at)
+  OVER (PARTITION BY toilet_id ORDER BY recorded_at) - recorded_at AS duration
+  FROM events
+  ORDER BY recorded_at
+) e
+WHERE NOT is_free;
