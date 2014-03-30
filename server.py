@@ -87,22 +87,21 @@ class BaseHandler(tornado.web.RequestHandler):
 
 
 class MainHandler(BaseHandler):
-    @tornado.web.asynchronous
     @tornado.gen.coroutine
     def get(self):
         has_free = bool2str((yield self.has_free_toilet()))
         self.render("index.html", has_free_toilet=has_free)
 
     @hmac_authenticated
-    @tornado.web.asynchronous
     @tornado.gen.coroutine
     def post(self):
-        for t in tornado.escape.json_decode(self.get_argument("data")):
-            yield momoko.Op(self.db.execute,
-                            "INSERT INTO events "
-                            "(toilet_id, is_free, recorded_at) "
-                            "VALUES (%s, %s, %s);",
-                            (t["toilet_id"], t["is_free"], t["timestamp"]))
+        values = yield [momoko.Op(self.db.mogrify,
+            "(%{toilet_id}s, %{is_free}s, %{timestamp}s)", t) \
+            for t in tornado.escape.json_decode(self.get_argument("data")
+        )]
+        yield momoko.Op(self.db.execute,
+                        "INSERT INTO events (toilet_id, is_free, recorded_at) "
+                        "VALUES %s;" % ", ".join(values))
         self.notify_has_free()
         self.finish()
 
@@ -118,17 +117,10 @@ class MainHandler(BaseHandler):
 
 
 class APIHandler(BaseHandler):
-    @tornado.web.asynchronous
     @tornado.gen.coroutine
     def get(self):
-        force = self.get_argument("force", None)
-        if force:
-            result = False if force == "f" else True
-        else:
-            result = yield self.has_free_toilet()
-
         response = tornado.escape.json_encode({
-            "has_free_toilet": result
+            "has_free_toilet": (yield self.has_free_toilet())
         })
         callback = self.get_argument("callback", None)
         if callback:
