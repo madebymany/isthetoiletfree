@@ -28,7 +28,7 @@ define("db_user", default="callum", help="database username", type=str)
 define("db_pass", default="", help="database password", type=str)
 
 
-class DateStrParser(object):
+class HumanDateParser(object):
     def __init__(self):
         self.calendar = parsedatetime.Calendar()
 
@@ -51,12 +51,17 @@ def get_psql_credentials():
     return credentials
 
 
-def get_secret_key():
+def _get_key(filename, envvar):
     try:
-        with open(os.path.join(os.path.dirname(__file__), ".hmac_key")) as f:
+        with open(os.path.join(os.path.dirname(__file__), filename)) as f:
             return f.read().strip()
     except IOError:
-        return os.getenv("ITTF_HMAC_KEY")
+        return os.getenv(envvar)
+
+get_hmac_key = \
+    functools.partial(_get_key, ".hmac_key", "ITTF_HMAC_KEY")
+get_cookie_secret = \
+    functools.partial(_get_key, ".cookie_secret", "ITTF_COOKIE_SECRET")
 
 
 def hmac_authenticated(method):
@@ -152,7 +157,7 @@ class StatsHandler(BaseHandler):
     @tornado.web.authenticated
     @tornado.gen.coroutine
     def get(self):
-        parser = DateStrParser()
+        parser = HumanDateParser()
         parsed_start = None
         parsed_end = None
         text = None
@@ -227,8 +232,8 @@ if __name__ == "__main__":
          (r"/api", APIHandler),
          (r"/hasfreesocket", HasFreeWebSocketHandler)],
         template_path=os.path.join(os.path.dirname(__file__), "templates"),
-        hmac_key=get_secret_key(),
-        cookie_secret="CGT6NALTvnR8LpILJwyKGcwFzntjna7w",
+        hmac_key=get_hmac_key(),
+        cookie_secret=get_cookie_secret(),
         login_url="/login"
     )
     app.db = momoko.Pool(
