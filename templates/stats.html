@@ -1,0 +1,76 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Is the Toilet Free stats</title>
+<link href="http://fonts.googleapis.com/css?family=PT+Mono" rel="stylesheet">
+<style>
+* {
+    font-family: "PT Mono", monospace;
+    font-size: 100%;
+    font-weight: normal;
+    color: #fff;
+}
+
+body {
+    margin: 4em;
+    background-color: #222;
+}
+
+h2 {
+    color: #a9a9a9;
+}
+
+pre,
+form {
+    margin: 4em 0;
+}
+
+input {
+    outline: none;
+    background-color: transparent;
+    border: 1px solid #fff;
+    line-height: 1.2;
+    padding: 4px 6px;
+}
+
+button {
+    outline: none;
+    border: none;
+    background-color: transparent;
+}
+
+fieldset {
+    margin: 0;
+    padding: 0;
+    border: none;
+}
+
+legend {
+    margin-bottom: 0.5em;
+}
+</style>
+</head>
+<body>
+<h1>Is the Toilet Free stats</h1>
+{% if date_range["text"] %}
+<h2>{{ date_range["text"] }}</h2>
+{% end %}
+{% for title, table in tables %}
+<pre>
+{{ title }}<br>
+{{ table }}
+</pre>
+{% end %}
+<form method="GET" action="{{ request.path }}">
+<fieldset>
+<legend>Show in range:</legend>
+<input type="text" name="from" placeholder="from" value="{{ date_range["start"] or "" }}">
+<input type="text" name="to" placeholder="to" value="{{ date_range["end"] or "" }}">
+<button type="submit">Go</button>
+<div>
+</div>
+</fieldset>
+</form>
+</body>
+</html>
