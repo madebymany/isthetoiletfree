@@ -13,8 +13,8 @@ from RPi import GPIO
 GPIO.setmode(GPIO.BOARD)
 
 INTERVAL = 2
-HMAC_KEY = open(os.path.join(os.path.dirname(__file__),
-                             ".hmac_key")).read().strip()
+HMAC_SECRET = open(os.path.join(os.path.dirname(__file__),
+                                ".hmac_secret")).read().strip()
 
 
 class Toilet(object):
@@ -40,7 +40,7 @@ def call_server(url_params):
     data = json.dumps(url_params)
     requests.post(os.getenv("ITTF_SERVER_URL"), params={
         "data": data,
-        "token": hmac.new(HMAC_KEY, data, hashlib.sha256).hexdigest()
+        "token": hmac.new(HMAC_SECRET, data, hashlib.sha256).hexdigest()
     })
 
 

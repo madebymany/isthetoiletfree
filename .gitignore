@@ -34,5 +34,5 @@ nosetests.xml
 .project
 .pydevproject
 
-.hmac_key
+.hmac_secret
 .cookie_secret

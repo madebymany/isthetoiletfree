@@ -51,24 +51,24 @@ def get_psql_credentials():
     return credentials
 
 
-def _get_key(filename, envvar):
+def _get_secret(filename, envvar):
     try:
         with open(os.path.join(os.path.dirname(__file__), filename)) as f:
             return f.read().strip()
     except IOError:
         return os.getenv(envvar)
 
-get_hmac_key = \
-    functools.partial(_get_key, ".hmac_key", "ITTF_HMAC_KEY")
+get_hmac_secret = \
+    functools.partial(_get_secret, ".hmac_secret", "ITTF_HMAC_SECRET")
 get_cookie_secret = \
-    functools.partial(_get_key, ".cookie_secret", "ITTF_COOKIE_SECRET")
+    functools.partial(_get_secret, ".cookie_secret", "ITTF_COOKIE_SECRET")
 
 
 def hmac_authenticated(method):
     @functools.wraps(method)
     def wrapper(self, *args, **kwargs):
         hash = hmac.new(
-            self.settings["hmac_key"],
+            self.settings["hmac_secret"],
             self.get_argument("data"),
             hashlib.sha256
         )
@@ -232,7 +232,7 @@ if __name__ == "__main__":
          (r"/api", APIHandler),
          (r"/hasfreesocket", HasFreeWebSocketHandler)],
         template_path=os.path.join(os.path.dirname(__file__), "templates"),
-        hmac_key=get_hmac_key(),
+        hmac_secret=get_hmac_secret(),
         cookie_secret=get_cookie_secret(),
         login_url="/login"
     )
