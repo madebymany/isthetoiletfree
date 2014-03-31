@@ -96,9 +96,9 @@ class MainHandler(BaseHandler):
     @tornado.gen.coroutine
     def post(self):
         values = yield [momoko.Op(self.db.mogrify,
-            "(%{toilet_id}s, %{is_free}s, %{timestamp}s)", t) \
-            for t in tornado.escape.json_decode(self.get_argument("data")
-        )]
+            "(%(toilet_id)s, %(is_free)s, %(timestamp)s)", t) \
+            for t in tornado.escape.json_decode(self.get_argument("data"))
+        ]
         yield momoko.Op(self.db.execute,
                         "INSERT INTO events (toilet_id, is_free, recorded_at) "
                         "VALUES %s;" % ", ".join(values))
