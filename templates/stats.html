@@ -26,18 +26,16 @@ form {
     margin: 4em 0;
 }
 
-input {
-    outline: none;
-    background-color: transparent;
-    border: 1px solid #fff;
-    line-height: 1.2;
-    padding: 4px 6px;
-}
-
+input,
 button {
     outline: none;
     border: none;
     background-color: transparent;
+}
+
+input {
+    border: 1px solid #fff;
+    padding: 4px 6px;
 }
 
 fieldset {
@@ -68,8 +66,6 @@ legend {
 <input type="text" name="from" placeholder="from" value="{{ start or "" }}">
 <input type="text" name="to" placeholder="to" value="{{ end or "" }}">
 <button type="submit">Go</button>
-<div>
-</div>
 </fieldset>
 </form>
 </body>
