@@ -53,8 +53,8 @@ legend {
 </head>
 <body>
 <h1>Is the Toilet Free stats</h1>
-{% if date_range["text"] %}
-<h2>{{ date_range["text"] }}</h2>
+{% if text %}
+<h2>{{ text }}</h2>
 {% end %}
 {% for title, table in tables %}
 <pre>
@@ -65,8 +65,8 @@ legend {
 <form method="GET" action="{{ request.path }}">
 <fieldset>
 <legend>Show in range:</legend>
-<input type="text" name="from" placeholder="from" value="{{ date_range["start"] or "" }}">
-<input type="text" name="to" placeholder="to" value="{{ date_range["end"] or "" }}">
+<input type="text" name="from" placeholder="from" value="{{ start or "" }}">
+<input type="text" name="to" placeholder="to" value="{{ end or "" }}">
 <button type="submit">Go</button>
 <div>
 </div>

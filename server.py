@@ -152,11 +152,33 @@ class StatsHandler(BaseHandler):
     @tornado.web.authenticated
     @tornado.gen.coroutine
     def get(self):
-        date_range = self._get_date_range()
-        op = date_range["op"]
+        parser = DateStrParser()
+        parsed_start = None
+        parsed_end = None
+        text = None
+        op = None
         clause = None
+        start = self.get_argument("from", None)
+        end = self.get_argument("to", None)
+
+        if start and end:
+            parsed_start = parser.parse(start)
+            parsed_end = parser.parse(end)
+            text = "Showing from %s til %s" % (parsed_start, parsed_end)
+            op = ("WHERE recorded_at BETWEEN %s AND %s",
+                  (parsed_start, parsed_end))
+        elif start:
+            parsed_start = parser.parse(start)
+            text = "Showing from %s onward" % parsed_start
+            op = ("WHERE recorded_at >= %s", (parsed_start,))
+        elif end:
+            parsed_end = parser.parse(end)
+            text = "Showing from %s backward" % parsed_end
+            op = ("WHERE recorded_at <= %s", (parsed_end,))
+
         if op:
             clause = yield momoko.Op(self.db.mogrify, *op)
+
         queries = [
             ("Number of visits",
              "SELECT toilet_id, count(*) "
@@ -178,36 +200,10 @@ class StatsHandler(BaseHandler):
         results = yield [momoko.Op(self.db.execute,
                                    q % {"clause": clause or ""}) \
                          for _, q in queries]
-        self.render("stats.html", date_range=date_range,
+
+        self.render("stats.html", text=text, start=start, end=end,
                     tables=[(queries[i][0], prettytable.from_db_cursor(r)) \
                             for i, r in enumerate(results)])
-
-    def _get_date_range(self):
-        parser = DateStrParser()
-        parsed_start = None
-        parsed_end = None
-        text = None
-        op = None
-        start = self.get_argument("from", None)
-        end = self.get_argument("to", None)
-
-        if start and end:
-            parsed_start = parser.parse(start)
-            parsed_end = parser.parse(end)
-            text = "Showing from %s til %s" % (parsed_start, parsed_end)
-            op = ("WHERE recorded_at BETWEEN %s AND %s",
-                  (parsed_start, parsed_end))
-        elif start:
-            parsed_start = parser.parse(start)
-            text = "Showing from %s onward" % parsed_start
-            op = ("WHERE recorded_at >= %s", (parsed_start,))
-        elif end:
-            parsed_end = parser.parse(end)
-            text = "Showing from %s backward" % parsed_end
-            op = ("WHERE recorded_at <= %s", (parsed_end,))
-
-        return dict(op=op, start=start, end=end, text=text,
-                    parsed_start=parsed_start, parsed_end=parsed_end)
 
 
 class APIHandler(BaseHandler):
