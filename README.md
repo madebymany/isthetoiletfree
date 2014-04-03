@@ -1,9 +1,16 @@
 isthetoiletfree
 ===============
 
+Deploying the client:
+
+```
+git remote add pi pi@isthetoiletfree.local:ittf_git
+```
+
+Deploying the server:
+
 ```
 git remote add heroku git@heroku.com:isthetoiletfree.git
-ssh pi@isthetoiletfree.local
 ```
 
 Import the database schema on Heroku:
@@ -23,5 +30,5 @@ start ittfdev
 ## Useful links
 
 * http://serverfault.com/questions/96499/how-to-automatically-start-supervisord-on-linux-ubuntu
-* https://gist.github.com/howthebodyworks/176149
 * http://raspberrywebserver.com/serveradmin/run-a-script-on-start-up.html
+* http://monkeyhacks.com/raspberry-pi-as-private-git-server
