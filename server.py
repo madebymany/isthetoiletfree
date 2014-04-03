@@ -105,7 +105,7 @@ class BaseHandler(tornado.web.RequestHandler):
 
     @tornado.gen.coroutine
     def has_free_toilet(self):
-        cursor = yield momoko.Op(self.db.callproc, "has_free_toilet")
+        cursor = yield momoko.Op(self.db.callproc, "any_are_free")
         raise tornado.gen.Return(cursor.fetchone()[0])
 
 
