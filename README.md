@@ -4,7 +4,7 @@ isthetoiletfree
 Deploying the client:
 
 ```
-git remote add pi pi@isthetoiletfree.local:ittf_git
+git remote add pi pi@isthetoiletfree.local:isthetoiletfree.git
 ```
 
 Deploying the server:
