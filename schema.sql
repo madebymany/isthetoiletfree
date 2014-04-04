@@ -17,23 +17,25 @@ CREATE VIEW visits AS SELECT * FROM (
 ) e
 WHERE NOT is_free;
 
-CREATE FUNCTION all_are_free() RETURNS BOOLEAN AS $$
+DROP FUNCTION all_are_free
+CREATE FUNCTION all_are_free(timestamp default current_timestamp) RETURNS BOOLEAN AS $$
 DECLARE
     all_free BOOLEAN;
 BEGIN
     SELECT INTO all_free NOT EXISTS (
-        SELECT 1 FROM latest_events WHERE NOT is_free
+        SELECT 1 FROM latest_events WHERE NOT is_free AND recorded_at < $1
     );
     RETURN all_free;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE FUNCTION any_are_free() RETURNS BOOLEAN AS $$
+DROP FUNCTION any_are_free
+CREATE FUNCTION any_are_free(timestamp default current_timestamp) RETURNS BOOLEAN AS $$
 DECLARE
     any_free BOOLEAN;
 BEGIN
     SELECT INTO any_free EXISTS (
-        SELECT 1 FROM latest_events WHERE is_free
+        SELECT 1 FROM latest_events WHERE is_free AND recorded_at < $1
     );
     RETURN any_free;
 END;

@@ -200,15 +200,50 @@ class StatsHandler(BaseHandler):
             ("Maximum visit duration",
              "SELECT toilet_id, max(duration) "
              "AS duration_max FROM visits %(clause)s "
-             "GROUP BY toilet_id ORDER BY toilet_id;")
+             "GROUP BY toilet_id ORDER BY toilet_id;"),
+            ("First choice visits",
+             "SELECT toilet_id, COUNT(toilet_id) "
+             "FROM visits "
+             "WHERE all_are_free(visits.recorded_at) "
+             "GROUP BY toilet_id ORDER BY toilet_id;"),
+            ("Visits per hour",
+             "SELECT s.hour AS hour_of_day, count(v.hour) "
+             "FROM generate_series(0, 23) s(hour) "
+             "LEFT OUTER JOIN (select EXTRACT('hour' from recorded_at) AS hour from visits) v on s.hour = v.hour "
+             "%(clause)s "
+             "GROUP BY s.hour "
+             "ORDER BY s.hour;"),
+            ("Visits per day",
+             "SELECT s.dow AS day_of_week, count(v.dow) "
+             "FROM generate_series(0, 6) s(dow) "
+             "LEFT OUTER JOIN (select EXTRACT('dow' from recorded_at) AS dow from visits) v on s.dow = v.dow "
+             "%(clause)s "
+             "GROUP BY s.dow "
+             "ORDER BY s.dow;")
         ]
         results = yield [momoko.Op(self.db.execute,
                                    q % {"clause": clause or ""}) \
                          for _, q in queries]
 
+        from ascii_graph import Pyasciigraph
+
+        cursor = yield momoko.Op(self.db.execute, (
+             "SELECT (10 * s.period) AS seconds, COUNT(v.duration) "
+             "FROM generate_series(0, 500) s(period) "
+             "LEFT OUTER JOIN (SELECT EXTRACT(EPOCH FROM duration) AS duration FROM visits) v on s.period = FLOOR(v.duration / 10) "
+             "GROUP BY s.period "
+             "HAVING s.period <= 36 "
+             "ORDER BY s.period;"))
+
+        graph = Pyasciigraph()
+        graph_text = ""
+        for line in graph.graph('Frequency graph', cursor.fetchall()):
+            graph_text += line + "\n"
+
         self.render("stats.html", text=text, start=start, end=end,
                     tables=[(queries[i][0], prettytable.from_db_cursor(r)) \
-                            for i, r in enumerate(results)])
+                            for i, r in enumerate(results)],
+                    frequency_graph=graph_text)
 
 
 class APIHandler(BaseHandler):
