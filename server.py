@@ -18,7 +18,7 @@ import parsedatetime
 import prettytable
 import logging
 
-from tornado.options import define, options
+from tornado.options import define, parse_command_line, options
 
 define("port", default=8888, help="run on the given port", type=int)
 define("db_host", default="localhost", help="database hostname", type=str)
@@ -27,6 +27,7 @@ define("db_name", default="callum", help="database name", type=str)
 define("db_user", default="callum", help="database username", type=str)
 define("db_pass", default="", help="database password", type=str)
 
+parse_command_line()
 
 class HumanDateParser(object):
     def __init__(self):
