@@ -7,6 +7,8 @@ import json
 import os
 import datetime
 import time
+import sys
+import signal
 
 from RPi import GPIO
 
@@ -36,6 +38,20 @@ class Toilet(object):
             self.latest_is_free = self.is_free
 
 
+leds = {"r": 8, "g": 10, "b": 12}
+toilets = [Toilet(tid=i, pin=p) for i, p in enumerate([22, 24, 26])]
+
+for c, p in leds.iteritems():
+    GPIO.setup(p, GPIO.OUT)
+    GPIO.output(p, False)
+
+
+def cleanup(signum=None, frame=None):
+    for c, p in leds.iteritems():
+        GPIO.output(p, False)
+    sys.exit(0)
+
+
 def call_server(url_params):
     data = json.dumps(url_params)
     requests.post(os.getenv("ITTF_SERVER_URL"), params={
@@ -43,13 +59,6 @@ def call_server(url_params):
         "token": hmac.new(HMAC_SECRET, data, hashlib.sha256).hexdigest()
     })
 
-
-leds = {"r": 8, "g": 10, "b": 12}
-toilets = [Toilet(tid=i, pin=p) for i, p in enumerate([22, 24, 26])]
-
-for c, p in leds.iteritems():
-    GPIO.setup(p, GPIO.OUT)
-    GPIO.output(p, False)
 
 try:
     while True:
@@ -68,4 +77,6 @@ try:
         GPIO.output(leds["g"], has_free)
         time.sleep(INTERVAL)
 except KeyboardInterrupt:
-    pass
+    cleanup()
+
+signal.signal(signal.SIGTERM, cleanup)
