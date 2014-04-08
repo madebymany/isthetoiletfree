@@ -16,9 +16,10 @@ import time
 import datetime
 import parsedatetime
 import prettytable
+import ascii_graph
 import logging
 
-from tornado.options import define, parse_command_line, options
+from tornado.options import define, options, parse_command_line
 
 define("port", default=8888, help="run on the given port", type=int)
 define("db_host", default="localhost", help="database hostname", type=str)
@@ -27,7 +28,6 @@ define("db_name", default="callum", help="database name", type=str)
 define("db_user", default="callum", help="database username", type=str)
 define("db_pass", default="", help="database password", type=str)
 
-parse_command_line()
 
 class HumanDateParser(object):
     def __init__(self):
@@ -163,7 +163,8 @@ class StatsHandler(BaseHandler):
         parsed_end = None
         text = None
         op = None
-        clause = None
+        where = ""
+        and_where = ""
         start = self.get_argument("from", None)
         end = self.get_argument("to", None)
 
@@ -183,68 +184,64 @@ class StatsHandler(BaseHandler):
             op = ("WHERE recorded_at <= %s", (parsed_end,))
 
         if op:
-            clause = yield momoko.Op(self.db.mogrify, *op)
+            where = yield momoko.Op(self.db.mogrify, *op)
+            and_where = where.replace("WHERE", "AND", 1)
 
         queries = [
             ("Number of visits",
              "SELECT toilet_id, count(*) "
-             "AS num_visits FROM visits %(clause)s "
+             "AS num_visits FROM visits %(where)s "
              "GROUP BY toilet_id ORDER BY toilet_id;"),
             ("Average visit duration",
              "SELECT toilet_id, avg(duration) "
-             "AS duration_avg FROM visits %(clause)s "
+             "AS duration_avg FROM visits %(where)s "
              "GROUP BY toilet_id ORDER BY toilet_id;"),
             ("Minimum visit duration",
              "SELECT toilet_id, min(duration) "
-             "AS duration_min FROM visits %(clause)s "
+             "AS duration_min FROM visits %(where)s "
              "GROUP BY toilet_id ORDER BY toilet_id;"),
             ("Maximum visit duration",
              "SELECT toilet_id, max(duration) "
-             "AS duration_max FROM visits %(clause)s "
+             "AS duration_max FROM visits %(where)s "
              "GROUP BY toilet_id ORDER BY toilet_id;"),
             ("First choice visits",
-             "SELECT toilet_id, COUNT(toilet_id) "
-             "FROM visits "
-             "WHERE all_are_free(visits.recorded_at) "
+             "SELECT toilet_id, count(*) FROM visits "
+             "WHERE all_are_free(recorded_at) %(and_where)s "
              "GROUP BY toilet_id ORDER BY toilet_id;"),
             ("Visits per hour",
              "SELECT s.hour AS hour_of_day, count(v.hour) "
              "FROM generate_series(0, 23) s(hour) "
-             "LEFT OUTER JOIN (select EXTRACT('hour' from recorded_at) AS hour from visits) v on s.hour = v.hour "
-             "%(clause)s "
-             "GROUP BY s.hour "
-             "ORDER BY s.hour;"),
+             "LEFT OUTER JOIN (SELECT recorded_at, "
+             "EXTRACT('hour' from recorded_at) "
+             "AS hour from visits) v on s.hour = v.hour %(where)s "
+             "GROUP BY s.hour ORDER BY s.hour;"),
             ("Visits per day",
              "SELECT s.dow AS day_of_week, count(v.dow) "
              "FROM generate_series(0, 6) s(dow) "
-             "LEFT OUTER JOIN (select EXTRACT('dow' from recorded_at) AS dow from visits) v on s.dow = v.dow "
-             "%(clause)s "
-             "GROUP BY s.dow "
-             "ORDER BY s.dow;")
+             "LEFT OUTER JOIN (SELECT recorded_at, "
+             "EXTRACT('dow' from recorded_at) "
+             "AS dow from visits) v on s.dow = v.dow %(where)s "
+             "GROUP BY s.dow ORDER BY s.dow;")
         ]
         results = yield [momoko.Op(self.db.execute,
-                                   q % {"clause": clause or ""}) \
+                                   q % {"where": where,
+                                        "and_where": and_where}) \
                          for _, q in queries]
 
-        from ascii_graph import Pyasciigraph
-
         cursor = yield momoko.Op(self.db.execute, (
-             "SELECT (10 * s.period) AS seconds, COUNT(v.duration) "
-             "FROM generate_series(0, 500) s(period) "
-             "LEFT OUTER JOIN (SELECT EXTRACT(EPOCH FROM duration) AS duration FROM visits) v on s.period = FLOOR(v.duration / 10) "
-             "GROUP BY s.period "
-             "HAVING s.period <= 36 "
-             "ORDER BY s.period;"))
-
-        graph = Pyasciigraph()
-        graph_text = ""
-        for line in graph.graph('Frequency graph', cursor.fetchall()):
-            graph_text += line + "\n"
+            "SELECT (s.period * 10) AS seconds, count(v.duration) "
+            "FROM generate_series(0, 500) s(period) "
+            "LEFT OUTER JOIN (SELECT EXTRACT(EPOCH from duration) "
+            "AS duration FROM visits) v on s.period = FLOOR(v.duration / 10) "
+            "GROUP BY s.period HAVING s.period <= 36 ORDER BY s.period;")
+        )
+        graph = "\n".join(ascii_graph.Pyasciigraph()
+                          .graph("Frequency graph", cursor.fetchall()))
 
         self.render("stats.html", text=text, start=start, end=end,
                     tables=[(queries[i][0], prettytable.from_db_cursor(r)) \
                             for i, r in enumerate(results)],
-                    frequency_graph=graph_text)
+                    frequency_graph=graph)
 
 
 class APIHandler(BaseHandler):
@@ -276,6 +273,6 @@ if __name__ == "__main__":
         dsn=" ".join(["%s=%s" % c for c in get_psql_credentials().iteritems()]),
         size=1
     )
-    tornado.options.parse_command_line()
+    parse_command_line()
     app.listen(options.port)
     tornado.ioloop.IOLoop.instance().start()

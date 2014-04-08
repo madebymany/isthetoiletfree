@@ -1,4 +1,5 @@
 Momoko==1.0.0
+ascii-graph==0.2.1
 backports.ssl-match-hostname==3.4.0.2
 parsedatetime==1.2
 prettytable==0.7.2
