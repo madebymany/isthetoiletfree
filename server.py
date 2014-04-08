@@ -159,8 +159,6 @@ class StatsHandler(BaseHandler):
     @tornado.gen.coroutine
     def get(self):
         parser = HumanDateParser()
-        parsed_start = None
-        parsed_end = None
         text = None
         op = None
         where = ""
