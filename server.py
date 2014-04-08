@@ -171,7 +171,7 @@ class StatsHandler(BaseHandler):
         if start and end:
             parsed_start = parser.parse(start)
             parsed_end = parser.parse(end)
-            text = "Showing from %s til %s" % (parsed_start, parsed_end)
+            text = "Showing from %s to %s" % (parsed_start, parsed_end)
             op = ("WHERE recorded_at BETWEEN %s AND %s",
                   (parsed_start, parsed_end))
         elif start:
@@ -208,14 +208,14 @@ class StatsHandler(BaseHandler):
              "SELECT toilet_id, count(*) FROM visits "
              "WHERE all_are_free(recorded_at) %(and_where)s "
              "GROUP BY toilet_id ORDER BY toilet_id;"),
-            ("Visits per hour",
+            ("Visits by hour",
              "SELECT s.hour AS hour_of_day, count(v.hour) "
              "FROM generate_series(0, 23) s(hour) "
              "LEFT OUTER JOIN (SELECT recorded_at, "
              "EXTRACT('hour' from recorded_at) "
              "AS hour FROM visits) v on s.hour = v.hour %(where)s "
              "GROUP BY s.hour ORDER BY s.hour;"),
-            ("Visits per day",
+            ("Visits by day",
              "SELECT s.dow AS day_of_week, count(v.dow) "
              "FROM generate_series(0, 6) s(dow) "
              "LEFT OUTER JOIN (SELECT recorded_at, "
