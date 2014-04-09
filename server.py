@@ -269,7 +269,7 @@ if __name__ == "__main__":
     )
     app.db = momoko.Pool(
         dsn=" ".join(["%s=%s" % c for c in get_psql_credentials().iteritems()]),
-        size=1
+        size=6
     )
     parse_command_line()
     app.listen(options.port)
