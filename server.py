@@ -211,14 +211,14 @@ class StatsHandler(BaseHandler):
              "FROM generate_series(0, 23) s(hour) "
              "LEFT OUTER JOIN (SELECT recorded_at, "
              "EXTRACT('hour' from recorded_at) "
-             "AS hour FROM visits) v on s.hour = v.hour %(where)s "
+             "AS hour FROM visits %(where)s) v on s.hour = v.hour "
              "GROUP BY s.hour ORDER BY s.hour;"),
             ("Visits by day",
              "SELECT s.dow AS day_of_week, count(v.dow) "
              "FROM generate_series(0, 6) s(dow) "
              "LEFT OUTER JOIN (SELECT recorded_at, "
              "EXTRACT('dow' from recorded_at) "
-             "AS dow FROM visits) v on s.dow = v.dow %(where)s "
+             "AS dow FROM visits %(where)s) v on s.dow = v.dow "
              "GROUP BY s.dow ORDER BY s.dow;")
         ]
         results = yield [momoko.Op(self.db.execute,
