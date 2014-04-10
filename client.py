@@ -68,7 +68,7 @@ try:
                 url_params.append({
                     "toilet_id": t.tid,
                     "is_free": "yes" if t.is_free else "no",
-                    "timestamp": datetime.datetime.now().isoformat()
+                    "timestamp": datetime.datetime.utcnow().isoformat()
                 })
         if len(url_params):
             call_server(url_params)
