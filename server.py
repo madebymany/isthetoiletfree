@@ -202,10 +202,6 @@ class StatsHandler(BaseHandler):
              "SELECT toilet_id, max(duration) "
              "AS duration_max FROM visits %(where)s "
              "GROUP BY toilet_id ORDER BY toilet_id;"),
-            ("First choice of toilet visits",
-             "SELECT toilet_id, count(*) FROM events "
-             "WHERE all_are_free(recorded_at) %(and_where)s "
-             "GROUP BY toilet_id ORDER BY toilet_id;"),
             ("Visits by hour",
              "SELECT s.hour AS hour_of_day, count(v.hour) "
              "FROM generate_series(0, 23) s(hour) "
