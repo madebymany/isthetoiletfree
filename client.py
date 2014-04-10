@@ -7,6 +7,8 @@ import json
 import os
 import datetime
 import time
+import pytz
+import tzlocal
 import sys
 import signal
 
@@ -14,6 +16,7 @@ from RPi import GPIO
 
 GPIO.setmode(GPIO.BOARD)
 
+TIMEZONE = pyzt.timezone(tzlocal.get_localzone().zone)
 INTERVAL = 2
 HMAC_SECRET = open(os.path.join(os.path.dirname(__file__),
                                 ".hmac_secret")).read().strip()
@@ -68,7 +71,7 @@ try:
                 url_params.append({
                     "toilet_id": t.tid,
                     "is_free": "yes" if t.is_free else "no",
-                    "timestamp": datetime.datetime.utcnow().isoformat()
+                    "timestamp": datetime.datetime.now(TIMEZONE).isoformat()
                 })
         if len(url_params):
             call_server(url_params)
