@@ -21,18 +21,25 @@ CREATE VIEW visits AS SELECT toilet_id, is_free, recorded_at, duration FROM (
 ) AS all_visits WHERE rank >= 0.02 AND rank <= 0.98
 ORDER BY recorded_at;
 
-CREATE OR REPLACE FUNCTION latest_events(timestamp default current_timestamp)
+CREATE OR REPLACE FUNCTION latest_events(timestamp DEFAULT NULL)
 RETURNS SETOF events AS $$
-    SELECT DISTINCT ON (toilet_id) * FROM events
-    WHERE recorded_at <= $1 ORDER BY toilet_id, recorded_at DESC;
-$$ LANGUAGE sql;
+BEGIN
+  IF $1 IS NULL THEN
+      RETURN QUERY SELECT DISTINCT ON (toilet_id) * FROM events
+      ORDER BY toilet_id, recorded_at DESC;
+  ELSE
+      RETURN QUERY SELECT DISTINCT ON (toilet_id) * FROM events
+      WHERE recorded_at <= $1 ORDER BY toilet_id, recorded_at DESC;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION all_are_free(timestamp default current_timestamp)
+CREATE OR REPLACE FUNCTION all_are_free(timestamp DEFAULT NULL)
 RETURNS BOOLEAN AS $$
     SELECT TRUE = ALL (SELECT is_free FROM latest_events($1));
 $$ LANGUAGE sql;
 
-CREATE OR REPLACE FUNCTION any_are_free(timestamp default current_timestamp)
+CREATE OR REPLACE FUNCTION any_are_free(timestamp DEFAULT NULL)
 RETURNS BOOLEAN AS $$
     SELECT TRUE = ANY (SELECT is_free FROM latest_events($1));
 $$ LANGUAGE sql;
