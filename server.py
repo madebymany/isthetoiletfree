@@ -27,6 +27,8 @@ define("db_port", default=5432, help="database port", type=int)
 define("db_name", default="callum", help="database name", type=str)
 define("db_user", default="callum", help="database username", type=str)
 define("db_pass", default="", help="database password", type=str)
+define("timezone", default=os.environ.get("TZ", "Europe/London"),
+                   help="database password", type=str)
 
 
 class HumanDateParser(object):
@@ -109,6 +111,11 @@ class BaseHandler(tornado.web.RequestHandler):
         cursor = yield momoko.Op(self.db.callproc, "any_are_free")
         raise tornado.gen.Return(cursor.fetchone()[0])
 
+    @tornado.gen.coroutine
+    def prepare(self):
+        yield momoko.Op(self.db.execute,
+                        "SET TIMEZONE TO %s", (self.settings["timezone"],))
+
 
 class GoogleLoginHandler(BaseHandler, tornado.auth.GoogleMixin):
     @tornado.gen.coroutine
@@ -145,10 +152,11 @@ class MainHandler(BaseHandler):
 
     @tornado.gen.coroutine
     def notify_has_free(self):
+        has_free = bool2str((yield self.has_free_toilet()))
         for connected in HasFreeWebSocketHandler.connections:
             try:
                 connected.write_message({
-                    "hasFree": bool2str((yield self.has_free_toilet()))
+                    "hasFree": has_free
                 })
             except:
                 logging.error("Error sending message", exc_info=True)
@@ -258,6 +266,7 @@ if __name__ == "__main__":
          (r"/stats", StatsHandler),
          (r"/api", APIHandler),
          (r"/hasfreesocket", HasFreeWebSocketHandler)],
+        timezone=options.timezone,
         template_path=os.path.join(os.path.dirname(__file__), "templates"),
         hmac_secret=get_hmac_secret(),
         cookie_secret=get_cookie_secret(),
