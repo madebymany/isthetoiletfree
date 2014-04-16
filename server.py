@@ -19,7 +19,7 @@ import prettytable
 import ascii_graph
 import logging
 
-from tornado.options import define, options, parse_command_line
+from tornado.options import define, options
 
 define("port", default=8888, help="run on the given port", type=int)
 define("db_host", default="localhost", help="database hostname", type=str)
@@ -253,6 +253,7 @@ class APIHandler(BaseHandler):
 
 
 if __name__ == "__main__":
+    tornado.options.parse_command_line()
     app = tornado.web.Application(
         [(r"/login", GoogleLoginHandler),
          (r"/", MainHandler),
@@ -268,6 +269,5 @@ if __name__ == "__main__":
         dsn=" ".join(["%s=%s" % c for c in get_psql_credentials().iteritems()]),
         size=6
     )
-    parse_command_line()
     app.listen(options.port)
     tornado.ioloop.IOLoop.instance().start()
