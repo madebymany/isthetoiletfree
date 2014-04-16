@@ -60,23 +60,22 @@ def call_server(url_params):
     })
 
 
-try:
-    while True:
-        url_params = []
-        for t in toilets:
-            if t.has_changed_state():
-                url_params.append({
-                    "toilet_id": t.tid,
-                    "is_free": "yes" if t.is_free else "no",
-                    "timestamp": datetime.datetime.now().isoformat()
-                })
-        if len(url_params):
-            call_server(url_params)
-        has_free = any(t.is_free for t in toilets)
-        GPIO.output(leds["r"], not has_free)
-        GPIO.output(leds["g"], has_free)
-        time.sleep(INTERVAL)
-except KeyboardInterrupt:
-    cleanup()
+for s in (signal.SIGINT, signal.SIGTERM):
+    signal.signal(s, cleanup)
 
-signal.signal(signal.SIGTERM, cleanup)
+while True:
+    url_params = []
+    for t in toilets:
+        if t.has_changed_state():
+            url_params.append({
+                "toilet_id": t.tid,
+                "is_free": "yes" if t.is_free else "no",
+                "timestamp": datetime.datetime.now().isoformat()
+            })
+    if len(url_params):
+        call_server(url_params)
+    has_free = any(t.is_free for t in toilets)
+    GPIO.output(leds["r"], not has_free)
+    GPIO.output(leds["g"], has_free)
+    time.sleep(INTERVAL)
+
