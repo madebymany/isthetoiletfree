@@ -64,13 +64,14 @@ for s in (signal.SIGINT, signal.SIGTERM):
     signal.signal(s, cleanup)
 
 while True:
+    timestamp = datetime.datetime.now().isoformat()
     url_params = []
     for t in toilets:
         if t.has_changed_state():
             url_params.append({
                 "toilet_id": t.tid,
                 "is_free": "yes" if t.is_free else "no",
-                "timestamp": datetime.datetime.now().isoformat()
+                "timestamp": timestamp
             })
     if len(url_params):
         call_server(url_params)
