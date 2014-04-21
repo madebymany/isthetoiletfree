@@ -32,3 +32,8 @@ start ittfdev
 * http://serverfault.com/questions/96499/how-to-automatically-start-supervisord-on-linux-ubuntu
 * http://raspberrywebserver.com/serveradmin/run-a-script-on-start-up.html
 * http://monkeyhacks.com/raspberry-pi-as-private-git-server
+
+## Licence
+
+isthetoiletfree is released under the MIT licence:
+[opensource.org/licenses/MIT](http://opensource.org/licenses/MIT)
