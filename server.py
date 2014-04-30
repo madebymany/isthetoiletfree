@@ -270,4 +270,8 @@ if __name__ == "__main__":
         size=6
     )
     app.listen(options.port)
-    tornado.ioloop.IOLoop.instance().start()
+
+    try:
+        tornado.ioloop.IOLoop.instance().start()
+    except KeyboardInterrupt:
+        pass

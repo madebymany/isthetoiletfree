@@ -1,4 +1,4 @@
-#!/usr/env/bin python
+#!/usr/bin/env python
 
 import requests
 import hmac
@@ -7,27 +7,31 @@ import json
 import os
 import datetime
 import time
-import sys
-import signal
 
-from RPi import GPIO
+from gpiocrust import Header, OutputPin, InputPin
 
-GPIO.setmode(GPIO.BOARD)
+def one(iterable):
+    elements = [e for e in iterable if e]
+    return len(elements) == 1
 
-INTERVAL = 2
+
+INTERVAL = 2.0
 HMAC_SECRET = open(os.path.join(os.path.dirname(__file__),
                                 ".hmac_secret")).read().strip()
+
+leds = {"r": 8, "g": 10, "b": 12}
+switches = (22, 24, 26)
 
 
 class Toilet(object):
     def __init__(self, tid=None, pin=None):
-        GPIO.setup(pin, GPIO.IN)
         self.tid = tid
         self.pin = pin
+        self.input = InputPin(self.pin)
 
     @property
     def is_free(self):
-        return not GPIO.input(self.pin)
+        return not self.input.value
 
     def has_changed_state(self):
         try:
@@ -38,20 +42,6 @@ class Toilet(object):
             self.latest_is_free = self.is_free
 
 
-leds = {"r": 8, "g": 10, "b": 12}
-toilets = [Toilet(tid=i, pin=p) for i, p in enumerate([22, 24, 26])]
-
-for c, p in leds.iteritems():
-    GPIO.setup(p, GPIO.OUT)
-    GPIO.output(p, False)
-
-
-def cleanup(signum=None, frame=None):
-    for c, p in leds.iteritems():
-        GPIO.output(p, False)
-    sys.exit(0)
-
-
 def call_server(url_params):
     data = json.dumps(url_params)
     requests.post(os.getenv("ITTF_SERVER_URL"), params={
@@ -60,23 +50,33 @@ def call_server(url_params):
     })
 
 
-for s in (signal.SIGINT, signal.SIGTERM):
-    signal.signal(s, cleanup)
+if __name__ == "__main__":
+    with Header() as header:
+        toilets = [Toilet(tid=i, pin=p) \
+                   for i, p in enumerate(switches)]
+        r, g, b = [OutputPin(p, value=False) \
+                   for c, p in leds.iteritems()]
+        try:
+            while True:
+                states = (t.is_free for t in toilets)
+                has_one_free = one(states)
+                has_any_free = any(states)
+                r.value = has_one_free or not has_any_free
+                g.value = has_one_free or has_any_free
 
-while True:
-    timestamp = datetime.datetime.now().isoformat()
-    url_params = []
-    for t in toilets:
-        if t.has_changed_state():
-            url_params.append({
-                "toilet_id": t.tid,
-                "is_free": "yes" if t.is_free else "no",
-                "timestamp": timestamp
-            })
-    if len(url_params):
-        call_server(url_params)
-    has_free = any(t.is_free for t in toilets)
-    GPIO.output(leds["r"], not has_free)
-    GPIO.output(leds["g"], has_free)
-    time.sleep(INTERVAL)
+                timestamp = datetime.datetime.now().isoformat()
+                url_params = []
+                for t in toilets:
+                    if t.has_changed_state():
+                        url_params.append({
+                            "toilet_id": t.tid,
+                            "is_free": "yes" if t.is_free else "no",
+                            "timestamp": timestamp
+                        })
+                if len(url_params):
+                    call_server(url_params)
+
+                time.sleep(INTERVAL)
+        except KeyboardInterrupt:
+            pass
 
