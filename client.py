@@ -58,7 +58,7 @@ class RGBLED(object):
     def color(self, color):
         self._color = color
         for p, c in zip(self.pulses, self._color):
-            p.value = (c / 255.0) * 100.0
+            p.value = c / 255.0
 
     def color_between(self, c1, c2, delta):
         return tuple(b + ((a - b) * delta) for a, b in zip(c1, c2))
