@@ -109,6 +109,12 @@ class BaseHandler(tornado.web.RequestHandler):
         cursor = yield momoko.Op(self.db.callproc, "any_are_free")
         raise tornado.gen.Return(cursor.fetchone()[0])
 
+    @tornado.gen.coroutine
+    def has_free_shower(self):
+        cursor = yield momoko.Op(self.db.execute,
+          "SELECT is_free FROM latest_events() WHERE toilet_id = 2")
+        raise tornado.gen.Return(cursor.fetchone()[0])
+
 
 class GoogleLoginHandler(BaseHandler, tornado.auth.GoogleMixin):
     @tornado.gen.coroutine
@@ -153,6 +159,13 @@ class MainHandler(BaseHandler):
                 })
             except:
                 logging.error("Error sending message", exc_info=True)
+
+
+class ShowerHandler(BaseHandler):
+    @tornado.gen.coroutine
+    def get(self):
+        has_free = bool2str((yield self.has_free_shower()))
+        self.render("shower.html", has_free_shower=has_free)
 
 
 class StatsHandler(BaseHandler):
@@ -257,6 +270,7 @@ if __name__ == "__main__":
     app = tornado.web.Application(
         [(r"/login", GoogleLoginHandler),
          (r"/", MainHandler),
+         (r"/shower", ShowerHandler),
          (r"/stats", StatsHandler),
          (r"/api", APIHandler),
          (r"/hasfreesocket", HasFreeWebSocketHandler)],
