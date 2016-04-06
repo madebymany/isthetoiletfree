@@ -36,3 +36,4 @@ nosetests.xml
 
 .hmac_secret
 .cookie_secret
+.google_secret

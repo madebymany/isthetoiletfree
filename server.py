@@ -22,6 +22,7 @@ import logging
 from tornado.options import define, options
 
 define("port", default=8888, help="run on the given port", type=int)
+define("host", default='localhost:8888', help="server host", type=str)
 define("db_host", default="localhost", help="database hostname", type=str)
 define("db_port", default=5432, help="database port", type=int)
 define("db_name", default="callum", help="database name", type=str)
@@ -42,13 +43,13 @@ def get_psql_credentials():
     try:
         urlparse.uses_netloc.append("postgres")
         url = urlparse.urlparse(os.getenv("DATABASE_URL"))
-        credentials = { "host": url.hostname, "port": url.port,
-                        "dbname": url.path[1:], "user": url.username,
-                        "password": url.password }
+        credentials = {"host": url.hostname, "port": url.port,
+                       "dbname": url.path[1:], "user": url.username,
+                       "password": url.password}
     except:
-        credentials = { "host": options.db_host, "port": options.db_port,
-                        "dbname": options.db_name, "user": options.db_user,
-                        "password": options.db_pass }
+        credentials = {"host": options.db_host, "port": options.db_port,
+                       "dbname": options.db_name, "user": options.db_user,
+                       "password": options.db_pass}
     return credentials
 
 
@@ -63,6 +64,8 @@ get_hmac_secret = \
     functools.partial(_get_secret, ".hmac_secret", "ITTF_HMAC_SECRET")
 get_cookie_secret = \
     functools.partial(_get_secret, ".cookie_secret", "ITTF_COOKIE_SECRET")
+get_google_secret = \
+    functools.partial(_get_secret, ".google_secret", "ITTF_GOOGLE_SECRET")
 
 
 def hmac_authenticated(method):
@@ -106,28 +109,39 @@ class BaseHandler(tornado.web.RequestHandler):
 
     @tornado.gen.coroutine
     def has_free_toilet(self):
-        cursor = yield momoko.Op(self.db.callproc, "any_are_free")
+        cursor = yield self.db.callproc("any_are_free")
         raise tornado.gen.Return(cursor.fetchone()[0])
 
     @tornado.gen.coroutine
     def has_free_shower(self):
-        cursor = yield momoko.Op(self.db.execute,
-          "SELECT is_free FROM latest_events() WHERE toilet_id = 2")
+        cursor = yield self.db.execute(
+            "SELECT is_free FROM latest_events() WHERE toilet_id = 2")
         raise tornado.gen.Return(cursor.fetchone()[0])
 
 
-class GoogleLoginHandler(BaseHandler, tornado.auth.GoogleMixin):
+class GoogleLoginHandler(BaseHandler, tornado.auth.GoogleOAuth2Mixin):
     @tornado.gen.coroutine
     def get(self):
-        if self.get_argument("openid.mode", None):
-            email = (yield self.get_authenticated_user())["email"]
-            if email.endswith("@madebymany.co.uk") or \
-               email.endswith("@madebymany.com"):
-                self.set_secure_cookie("ittf_user", email)
+        if self.get_argument("code", False):
+            access = yield self.get_authenticated_user(
+                redirect_uri=self.settings["login_url"],
+                code=self.get_argument("code"))
+            user = yield self.oauth2_request(
+                "https://www.googleapis.com/oauth2/v1/userinfo",
+                access_token=access["access_token"])
+            if user["email"].endswith("@madebymany.co.uk") or \
+               user["email"].endswith("@madebymany.com"):
+                self.set_secure_cookie("ittf_user", user["email"])
                 self.redirect("/stats")
-            self.redirect("/")
+            else:
+                self.redirect("/")
         else:
-            yield self.authenticate_redirect()
+            yield self.authorize_redirect(
+                redirect_uri=self.settings["login_url"],
+                client_id=self.settings["google_oauth"]["key"],
+                scope=["profile", "email"],
+                response_type="code",
+                extra_params={"approval_prompt": "auto"})
 
 
 class MainHandler(BaseHandler):
@@ -139,13 +153,13 @@ class MainHandler(BaseHandler):
     @hmac_authenticated
     @tornado.gen.coroutine
     def post(self):
-        values = yield [momoko.Op(self.db.mogrify,
-            "(%(toilet_id)s, %(is_free)s, %(timestamp)s)", t) \
+        values = yield [self.db.mogrify(
+            "(%(toilet_id)s, %(is_free)s, %(timestamp)s)", t)
             for t in tornado.escape.json_decode(self.get_argument("data"))
         ]
-        yield momoko.Op(self.db.execute,
-                        "INSERT INTO events (toilet_id, is_free, recorded_at) "
-                        "VALUES %s;" % ", ".join(values))
+        yield self.db.execute(
+            "INSERT INTO events (toilet_id, is_free, recorded_at) "
+            "VALUES %s;" % ", ".join(values))
         self.notify_has_free()
         self.finish()
 
@@ -196,7 +210,7 @@ class StatsHandler(BaseHandler):
             op = ("WHERE recorded_at <= %s", (parsed_end,))
 
         if op:
-            where = yield momoko.Op(self.db.mogrify, *op)
+            where = yield self.db.mogrify(*op)
             and_where = where.replace("WHERE", "AND", 1)
 
         queries = [
@@ -231,23 +245,22 @@ class StatsHandler(BaseHandler):
              "AS dow FROM visits %(where)s) v on s.dow = v.dow "
              "GROUP BY s.dow ORDER BY s.dow;")
         ]
-        results = yield [momoko.Op(self.db.execute,
-                                   q % {"where": where,
-                                        "and_where": and_where}) \
+        results = yield [self.db.execute(q % {"where": where,
+                                              "and_where": and_where})
                          for _, q in queries]
 
-        cursor = yield momoko.Op(self.db.execute, (
+        cursor = yield self.db.execute((
             "SELECT (s.period * 10) AS seconds, count(v.duration) "
             "FROM generate_series(0, 500) s(period) "
             "LEFT OUTER JOIN (SELECT EXTRACT(EPOCH from duration) "
             "AS duration FROM visits) v on s.period = FLOOR(v.duration / 10) "
-            "GROUP BY s.period HAVING s.period <= 36 ORDER BY s.period;")
-        )
+            "GROUP BY s.period HAVING s.period <= 36 ORDER BY s.period;"
+        ))
         graph = "\n".join(ascii_graph.Pyasciigraph()
                           .graph("Frequency graph", cursor.fetchall()))
 
         self.render("stats.html", text=text, start=start, end=end,
-                    tables=[(queries[i][0], prettytable.from_db_cursor(r)) \
+                    tables=[(queries[i][0], prettytable.from_db_cursor(r))
                             for i, r in enumerate(results)],
                     frequency_graph=graph)
 
@@ -277,15 +290,24 @@ if __name__ == "__main__":
         template_path=os.path.join(os.path.dirname(__file__), "templates"),
         hmac_secret=get_hmac_secret(),
         cookie_secret=get_cookie_secret(),
-        login_url="/login"
+        login_url="http://%s/login" % options.host,
+        google_oauth=dict(key=os.getenv("ITTF_GOOGLE_KEY"),
+                          secret=get_google_secret())
     )
+    ioloop = tornado.ioloop.IOLoop.instance()
     app.db = momoko.Pool(
-        dsn=" ".join(["%s=%s" % c for c in get_psql_credentials().iteritems()]),
-        size=6
+        dsn=" ".join(["%s=%s" % c
+                      for c in get_psql_credentials().iteritems()]),
+        size=6,
+        ioloop=ioloop
     )
+    future = app.db.connect()
+    ioloop.add_future(future, lambda f: ioloop.stop())
+    ioloop.start()
+    future.result()
     app.listen(options.port)
 
     try:
-        tornado.ioloop.IOLoop.instance().start()
+        ioloop.start()
     except KeyboardInterrupt:
         pass
