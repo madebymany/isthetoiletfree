@@ -12,21 +12,10 @@ from tornado.httpclient import AsyncHTTPClient
 from gpiocrust import Header, PWMOutputPin, InputPin
 
 
-def percentage_filter(function, iterable):
-    count = 0
-    for element in iterable:
-        if function(element):
-            count += 1
-    return float(count) / float(len(iterable))
-
-
-def one(iterable):
-    elements = [e for e in iterable if e]
-    return len(elements) == 1
-
-
 SERVER_URL = os.getenv("ITTF_SERVER_URL", "http://localhost:8888/")
 INTERVAL = 2000.0
+RED = (255, 0, 0)
+GREEN = (0, 255, 0)
 HMAC_SECRET = open(os.path.join(os.path.dirname(__file__),
                                 ".hmac_secret")).read().strip()
 
@@ -59,9 +48,6 @@ class RGBLED(object):
         self._color = color
         for p, c in zip(self.pulses, self._color):
             p.value = c / 255.0
-
-    def color_between(self, c1, c2, delta):
-        return tuple(b + ((a - b) * delta) for a, b in zip(c1, c2))
 
 
 class Toilet(object):
@@ -97,10 +83,12 @@ if __name__ == "__main__":
         led = RGBLED(**led_map)
 
         def update_state():
-            percentage_free = percentage_filter(
-                lambda e: e, [t.is_free for t in toilets])
-            led.color = led.color_between(
-                (0, 255, 0), (255, 0, 0), percentage_free)
+            # NOTE: light will show red if just one toilet is in use
+            # while 2m social distancing is in place
+            if all(t.is_free for t in toilets):
+                led.color = GREEN
+            else:
+                led.color = RED
 
             timestamp = datetime.datetime.now().isoformat()
             params = []
